@@ -4,7 +4,7 @@ import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:dio/io.dart';
 
 class ApiFetcher {
-  final String baseUrl = "http://10.0.2.2:8080";
+  final String baseUrl = "http://10.0.2.2:4000";
   String? accessToken;
   String? refreshToken;
   ApiFetcher({this.accessToken, this.refreshToken, required String baseUrl});
@@ -114,7 +114,8 @@ class ApiFetcher {
     try {
       print('Sending DELETE request to: ${dio.options.baseUrl}/$path');
       final response = await dio.delete('/$path');
-      print('Received response: status ${response.statusCode}, body ${response.data}');
+      print(
+          'Received response: status ${response.statusCode}, body ${response.data}');
       final responseBody = response.data;
 
       return FetcherResponse(
@@ -131,7 +132,8 @@ class ApiFetcher {
       print('DELETE request failed: $e');
       print('Stack trace: $stackTrace');
       if (e is DioException) {
-        print('DioException details: type=${e.type}, message=${e.message}, response=${e.response}');
+        print(
+            'DioException details: type=${e.type}, message=${e.message}, response=${e.response}');
       }
       return FetcherResponse(
         status: 0,
