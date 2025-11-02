@@ -191,6 +191,151 @@ app.post(
     }),
   }
 );
+app.get("/check-email", async ({ query, set }) => {
+  const { email } = query;
+  if (!email || typeof email !== "string") {
+    set.status = 400;
+    return { exists: false, error: "Email manquant" };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.admin.listUsers();
+    const userExists = data.users.some((user) => user.email === email);
+
+    return { exists: userExists };
+  } catch (e) {
+    console.error("Erreur check-email:", e);
+    set.status = 500;
+    return { exists: false, error: "Erreur serveur" };
+  }
+});
+
+app.post(
+  "/register-public",
+  async ({ body, set }) => {
+    const { name, email, password, shop_name, phone, location, photo } = body;
+
+    try {
+      console.log("➡️ Début register-public");
+
+      // 1️⃣ Créer un compte utilisateur avec rôle vendor
+      const { data: createdUser, error: createError } =
+        await supabase.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { name, roles: ["vendor"] },
+        });
+
+      if (createError || !createdUser?.user?.id) {
+        console.error("❌ Erreur création user:", createError);
+        set.status = 400;
+        return {
+          success: false,
+          error: createError?.message ?? "Erreur création utilisateur",
+        };
+      }
+
+      const userId = createdUser.user.id;
+      let photoUrl = null;
+
+      // 2️⃣ Upload de la photo si présente
+      if (photo && typeof photo !== "string") {
+        const photoPath = `vendors/${userId}/${Date.now()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(photoPath, photo, {
+            contentType: photo.type,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          set.status = 500;
+          return {
+            success: false,
+            error: "Erreur lors du téléversement de la photo",
+            details: uploadError.message,
+          };
+        }
+
+        photoUrl = supabase.storage.from("avatars").getPublicUrl(photoPath)
+          .data.publicUrl;
+      }
+
+      // 2️⃣ Insérer dans public.users
+      const { error: userInsertError } = await supabase.from("users").insert([
+        {
+          id: userId,
+          email,
+          name,
+        },
+      ]);
+
+      if (userInsertError) {
+        set.status = 500;
+        return {
+          success: false,
+          error: "Failed to insert into public.users",
+          details: userInsertError.message,
+        };
+      }
+
+      // 3️⃣ Insertion dans la table vendors
+      const { error: insertError } = await supabase.from("vendors").insert({
+        id: userId,
+        shop_name,
+        phone,
+        location,
+        photo_url: photoUrl,
+        created_at: new Date().toISOString(),
+      });
+
+      if (insertError) {
+        console.error("❌ Erreur insertion vendor:", insertError.message);
+        set.status = 500;
+        return { success: false, error: insertError.message };
+      }
+
+      // 4️⃣ Attribution du rôle vendor dans user_roles
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role_id: "vendor" });
+
+      if (roleError) {
+        console.error("❌ Erreur ajout rôle:", roleError.message);
+        set.status = 500;
+        return { success: false, error: roleError.message };
+      }
+
+      // 5️⃣ Mise à jour des métadonnées
+      await supabase.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          name,
+          roles: ["vendor"],
+          photo: photoUrl,
+        },
+      });
+
+      console.log("✅ Vendor créé avec succès:", userId);
+      return { success: true, user_id: userId };
+    } catch (e) {
+      console.error("❌ Erreur serveur register-public:", e);
+      set.status = 500;
+      return { success: false, error: "Erreur interne du serveur" };
+    }
+  },
+  {
+    body: t.Object({
+      name: t.String(),
+      email: t.String(),
+      password: t.String(),
+      shop_name: t.String(),
+      phone: t.Optional(t.String()),
+      location: t.Optional(t.String()),
+      photo: t.Optional(t.Union([t.File(), t.String()])),
+    }),
+  }
+);
 
 // ===========================
 // 🔵 Endpoint: Liste des vendeurs

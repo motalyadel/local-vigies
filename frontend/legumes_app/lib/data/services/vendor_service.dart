@@ -132,8 +132,8 @@ class VendorService extends BaseService {
           shopName: shopName,
           phone: phone ?? '',
           location: location ?? '',
-          photoUrl: photoUrl,
-          createdAt: createdAt ?? DateTime.now(),
+          // photoUrl: photoUrl,
+          // createdAt: createdAt ?? DateTime.now(),
         );
       }
     } catch (e, s) {
@@ -148,57 +148,43 @@ class VendorService extends BaseService {
     required String email,
     required String password,
     required String shopName,
-    required String phone,
-    required String location,
-    String? photoUrl,
-    required DateTime createdAt,
+    String? phone,
+    String? location,
   }) async {
     try {
-      final authResponse = await clientSpb.auth.signUp(
-        email: email,
-        password: password,
-        data: {
-          'roles': ['vendor']
-        },
-      );
+      // 1. Vérifier si l'email existe déjà
+      final checkResponse = await apiFetcher.get('/check-email?email=$email');
 
-      if (authResponse.user == null) {
-        print('Échec de l’inscription: utilisateur null');
+      if (checkResponse.isSuccess && checkResponse.data['exists'] == true) {
+        print('Email déjà utilisé : $email');
+        // Tu peux retourner un message spécifique
         return false;
       }
 
-      final userId = authResponse.user!.id;
-
-      final vendorResponse = await clientSpb.from('vendors').insert({
-        'id': userId,
+      // 2. Si l'email est libre → on continue
+      final body = {
         'name': name,
         'email': email,
+        'password': password,
         'shop_name': shopName,
-        'phone': phone.isNotEmpty ? phone : null,
-        'location': location.isNotEmpty ? location : null,
-        'photo_url': photoUrl,
-        'created_at': createdAt.toIso8601String(),
-      });
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (location != null && location.isNotEmpty) 'location': location,
+      };
 
-      if (vendorResponse.error != null) {
-        print('Erreur insertion vendor: ${vendorResponse.error!.message}');
+      final response = await apiFetcher.post('/register-public', body: body);
+
+      if (response.isSuccess &&
+          response.data is Map &&
+          response.data['success'] == true) {
+        print('Vendor inscrit avec succès via API');
+        return true;
+      } else {
+        print('Erreur backend: ${response.error ?? response.data}');
         return false;
       }
-
-      final roleResponse = await clientSpb.from('user_roles').insert({
-        'user_id': userId,
-        'role_id': 'vendor',
-      });
-
-      if (roleResponse.error != null) {
-        print('Erreur insertion user_roles: ${roleResponse.error!.message}');
-        return false;
-      }
-
-      return true;
     } catch (e, s) {
-      print('❌ Échec de registerAndConfirmVendor: $e');
-      print('Stack trace: $s');
+      print('registerAndConfirmVendor() failed: $e');
+      print('Stack: $s');
       return false;
     }
   }
@@ -241,8 +227,8 @@ class VendorService extends BaseService {
       if (roles.contains('vendor')) {
         final vendorResponse = await clientSpb.from('vendors').insert({
           'id': userId,
-          'name': name,
-          'email': email,
+          // 'name': name,
+          // 'email': email,
           'shop_name': shopName,
           'phone': phone,
           'location': location,

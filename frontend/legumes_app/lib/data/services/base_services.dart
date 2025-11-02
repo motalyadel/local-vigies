@@ -1,3 +1,4 @@
+import 'package:legumes_app/core/utils/auth_error_handler.dart';
 import 'package:legumes_app/data/models/auth_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,8 +59,8 @@ abstract class BaseService<T extends AuthModel> {
       );
       return response;
     } catch (e) {
-      print("❌ signUp failed: $e");
-      rethrow;
+      final message = AuthErrorHandler.getMessage(e);
+      throw Exception(message);
     }
   }
 
