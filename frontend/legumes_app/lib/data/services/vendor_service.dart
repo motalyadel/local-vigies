@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:image_picker/image_picker.dart';
 import 'package:legumes_app/core/network/api_fetcher.dart';
 import 'package:legumes_app/data/models/auth_model.dart';
 import 'package:legumes_app/data/services/base_services.dart';
@@ -91,55 +94,56 @@ class VendorService extends BaseService {
     }
   }
 
-  Future<bool> createVendor({
-    required String name,
-    required String email,
-    required String password,
-    required String shopName,
-    String? phone,
-    String? location,
-    String? photoUrl,
-    DateTime? createdAt,
-  }) async {
+  Future<List<Vendor>> getAllVendors() async {
     try {
-      final currentUser = clientSpb.auth.currentUser;
-      final isAdmin = currentUser != null &&
-          (await clientSpb
-                  .from('user_roles')
-                  .select('app_role(id)')
-                  .eq('user_id', currentUser.id)
-                  .maybeSingle())?['app_role']['id'] ==
-              'admin';
-
-      if (isAdmin) {
-        final success = await createUser(
-          email: email,
-          password: password,
-          name: name,
-          shopName: shopName,
-          phone: phone,
-          location: location,
-          photoUrl: photoUrl,
-          createdAt: createdAt,
-          roles: ['vendor'],
-        );
-        return success;
-      } else {
-        return await registerAndConfirmVendor(
-          name: name,
-          email: email,
-          password: password,
-          shopName: shopName,
-          phone: phone ?? '',
-          location: location ?? '',
-          // photoUrl: photoUrl,
-          // createdAt: createdAt ?? DateTime.now(),
-        );
+      print('Récupération de tous les vendors...');
+      final roleResponse = await clientSpb
+          .from('user_roles')
+          .select('user_id')
+          .eq('role_id', 'vendor');
+      print('Utilisateurs avec rôle vendor: $roleResponse');
+      if (roleResponse.isEmpty) {
+        print('Aucun utilisateur avec rôle vendor trouvé.');
+        return [];
       }
+      final userIds =
+          roleResponse.map((item) => item['user_id'] as String).toList();
+      print('IDs des utilisateurs vendor: $userIds');
+
+      final usersResponse = await clientSpb.from('users').select('''
+          id, name,
+          roles: user_roles(role_id, app_role!inner(id))
+        ''').inFilter('id', userIds);
+      print('Réponse brute users: $usersResponse');
+
+      if (usersResponse.isEmpty) {
+        print('Aucun utilisateur correspondant trouvé dans la table users.');
+        return [];
+      }
+
+      final vendorsResponse = await clientSpb
+          .from('vendors')
+          .select('id, shop_name, phone, location, photo_url, created_at')
+          .inFilter('id', userIds);
+      print('Réponse brute vendors: $vendorsResponse');
+
+      final Map<String, Map<String, dynamic>> vendorMap = {
+        for (var v in vendorsResponse) (v['id'] as String): v
+      };
+
+      final vendors = usersResponse.map((userMap) {
+        print('Mapping utilisateur: $userMap');
+        final userId = userMap['id'] as String;
+        final vendorData = vendorMap[userId] ?? {};
+        print('Données vendor pour $userId: $vendorData');
+        return Vendor.fromMap({...userMap, 'vendor': vendorData});
+      }).toList();
+      print('Récupéré ${vendors.length} vendors');
+      return vendors;
     } catch (e, s) {
-      print('❌ Échec de createVendor: $e');
+      print("Échec de getAllVendors(): $e");
       print('Stack trace: $s');
-      return false;
+      return [];
     }
   }
 
@@ -189,130 +193,255 @@ class VendorService extends BaseService {
     }
   }
 
+  // Dans ton VendorService ou ClientService
   Future<bool> createUser({
     required String email,
     required String password,
     required String name,
+    String? shopName,
+    String? phone,
+    String? location,
+    XFile? photoUrl,
+    List<String>? roles,
+    // List<String> roles = const ['vendor'], // par défaut vendor
+  }) async {
+    try {
+      final body = {
+        'email': email.trim(),
+        'password': password,
+        'name': name.trim(),
+        if (shopName != null && shopName.trim().isNotEmpty)
+          'shop_name': shopName.trim(),
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+        if (location != null && location.trim().isNotEmpty)
+          'location': location.trim(),
+        // if (photoUrl != null && photoUrl.isNotEmpty) 'photo_url': photoUrl,
+        'roles': roles ?? ['vendor'],
+      };
+
+      print('Envoi vers /user : $body');
+
+      final response = await apiFetcher.post(
+        '/user',
+        body: body,
+        file: photoUrl
+        // Pas de fichier ici car photo_url est déjà uploadé avant
+      );
+
+      print('Réponse /user : ${response.status} - ${response.data}');
+
+      if (response.status == 200 || response.status == 201) {
+        final data = response.data as Map<String, dynamic>?;
+        return data?['success'] == true;
+      }
+
+      // Erreur détaillée
+      final errorMsg = response.data?['error'] ?? 'Erreur inconnue';
+      print('Erreur création utilisateur : $errorMsg');
+      return false;
+    } catch (e) {
+      print('Exception lors de createUser : $e');
+      return false;
+    }
+  }
+
+  // === CREATE VENDOR (Admin or Public) ===
+  Future<bool> createVendor({
+    required String name,
+    required String email,
+    required String password,
     required String shopName,
     String? phone,
     String? location,
     String? photoUrl,
-    DateTime? createdAt,
-    required List<String> roles,
+  }) async {
+    try {
+      final currentUser = clientSpb.auth.currentUser;
+      final isAdmin = currentUser != null &&
+          (await clientSpb
+                  .from('user_roles')
+                  .select('app_role(id)')
+                  .eq('user_id', currentUser.id)
+                  .single())['app_role']['id'] ==
+              'admin';
+
+      if (isAdmin) {
+        // Admin crée le compte + vendor
+        print("_createUserAndVendor....");
+        return await _createUserAndVendor(
+          name: name,
+          email: email,
+          password: password,
+          shopName: shopName,
+          phone: phone,
+          location: location,
+          photoUrl: photoUrl,
+        );
+      } else {
+        // Inscription publique
+        print("registerAndConfirmVendor....");
+        return await registerAndConfirmVendor(
+          name: name,
+          email: email,
+          password: password,
+          shopName: shopName,
+          phone: phone,
+          location: location,
+        );
+      }
+    } catch (e) {
+      print('createVendor failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _createUserAndVendor({
+    required String name,
+    required String email,
+    required String password,
+    required String shopName,
+    String? phone,
+    String? location,
+    String? photoUrl,
   }) async {
     try {
       final authResponse = await clientSpb.auth.signUp(
         email: email,
         password: password,
-        data: {'roles': roles},
+        data: {'name': name},
       );
 
-      if (authResponse.user == null) {
-        print('Échec création utilisateur: utilisateur null');
-        return false;
-      }
+      if (authResponse.user == null) return false;
 
       final userId = authResponse.user!.id;
 
-      final userResponse = await clientSpb.from('users').insert({
+      // Insérer dans users
+      await clientSpb.from('users').insert({
         'id': userId,
         'name': name,
+        'email': email,
       });
 
-      if (userResponse.error != null) {
-        print('Erreur insertion users: ${userResponse.error!.message}');
-        return false;
-      }
+      // Insérer dans vendors
+      await clientSpb.from('vendors').insert({
+        'id': userId,
+        'shop_name': shopName,
+        'phone': phone,
+        'location': location,
+        'photo_url': photoUrl,
+        'created_at': DateTime.now().toIso8601String(),
+      });
 
-      if (roles.contains('vendor')) {
-        final vendorResponse = await clientSpb.from('vendors').insert({
-          'id': userId,
-          // 'name': name,
-          // 'email': email,
-          'shop_name': shopName,
-          'phone': phone,
-          'location': location,
-          'photo_url': photoUrl,
-          'created_at':
-              createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        });
-
-        if (vendorResponse.error != null) {
-          print('Erreur insertion vendor: ${vendorResponse.error!.message}');
-          return false;
-        }
-      }
-
-      for (final role in roles) {
-        final roleResponse = await clientSpb.from('user_roles').insert({
-          'user_id': userId,
-          'role_id': role,
-        });
-        if (roleResponse.error != null) {
-          print('Erreur insertion rôle $role: ${roleResponse.error!.message}');
-          return false;
-        }
-      }
+      // Ajouter rôle
+      await clientSpb
+          .from('user_roles')
+          .insert({'user_id': userId, 'role_id': 'vendor'});
 
       return true;
-    } catch (e, s) {
-      print('❌ Échec de createUser: $e');
-      print('Stack trace: $s');
+    } catch (e) {
+      print('_createUserAndVendor failed: $e');
       return false;
     }
   }
 
-  Future<List<Vendor>> getAllVendors() async {
+  // === UPDATE VENDOR ===
+  Future<bool> updateVendor({
+    required String userId,
+    String? name,
+    String? shopName,
+    String? phone,
+    String? location,
+    String? photoUrl,
+  }) async {
     try {
-      print('Récupération de tous les vendors...');
-      final roleResponse = await clientSpb
-          .from('user_roles')
-          .select('user_id')
-          .eq('role_id', 'vendor');
-      print('Utilisateurs avec rôle vendor: $roleResponse');
-      if (roleResponse.isEmpty) {
-        print('Aucun utilisateur avec rôle vendor trouvé.');
-        return [];
-      }
-      final userIds =
-          roleResponse.map((item) => item['user_id'] as String).toList();
-      print('IDs des utilisateurs vendor: $userIds');
+      final userUpdates = <String, dynamic>{};
+      final vendorUpdates = <String, dynamic>{};
 
-      final usersResponse = await clientSpb.from('users').select('''
-          id, name,
-          roles: user_roles(role_id, app_role!inner(id))
-        ''').inFilter('id', userIds);
-      print('Réponse brute users: $usersResponse');
-
-      if (usersResponse.isEmpty) {
-        print('Aucun utilisateur correspondant trouvé dans la table users.');
-        return [];
+      if (name != null && name.trim().isNotEmpty) {
+        userUpdates['name'] = name.trim();
       }
 
-      final vendorsResponse = await clientSpb
-          .from('vendors')
-          .select(
-              'id, name, email, shop_name, phone, location, photo_url, created_at')
-          .inFilter('id', userIds);
-      print('Réponse brute vendors: $vendorsResponse');
+      if (shopName != null && shopName.trim().isNotEmpty) {
+        vendorUpdates['shop_name'] = shopName.trim();
+      }
+      if (phone != null && phone.trim().isNotEmpty) {
+        vendorUpdates['phone'] = phone.trim();
+      }
+      if (location != null && location.trim().isNotEmpty) {
+        vendorUpdates['location'] = location.trim();
+      }
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        vendorUpdates['photo_url'] = photoUrl;
+      }
 
-      final Map<String, Map<String, dynamic>> vendorMap = {
-        for (var v in vendorsResponse) (v['id'] as String): v
-      };
+      bool userSuccess = true;
+      if (userUpdates.isNotEmpty) {
+        try {
+          await clientSpb.from('users').update(userUpdates).eq('id', userId);
+        } catch (e) {
+          print('User update failed: $e');
+          userSuccess = false;
+        }
+      }
 
-      final vendors = usersResponse.map((userMap) {
-        print('Mapping utilisateur: $userMap');
-        final userId = userMap['id'] as String;
-        final vendorData = vendorMap[userId] ?? {};
-        print('Données vendor pour $userId: $vendorData');
-        return Vendor.fromMap({...userMap, 'vendor': vendorData});
-      }).toList();
-      print('Récupéré ${vendors.length} vendors');
-      return vendors;
-    } catch (e, s) {
-      print("Échec de getAllVendors(): $e");
-      print('Stack trace: $s');
-      return [];
+      bool vendorSuccess = true;
+      if (vendorUpdates.isNotEmpty) {
+        vendorUpdates['id'] = userId;
+        try {
+          await clientSpb
+              .from('vendors')
+              .upsert(vendorUpdates, onConflict: 'id');
+        } catch (e) {
+          print('Vendor upsert failed: $e');
+          vendorSuccess = false;
+        }
+      }
+
+      return userSuccess && vendorSuccess;
+    } catch (e) {
+      print("updateVendor() failed: $e");
+      return false;
+    }
+  }
+
+  Future<String?> uploadPhoto(XFile photo, String path) async {
+    try {
+      print('Uploading photo');
+      final fileBytes = await photo.readAsBytes();
+      await clientSpb.storage.from('avatars').uploadBinary(
+            path,
+            fileBytes,
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: photo.mimeType ?? 'image/jpeg',
+            ),
+          );
+      print("Photo uploaded to avatars");
+      final publicUrl = clientSpb.storage.from('avatars').getPublicUrl(path);
+      print('Photo URL: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      print("Photo upload failed: $e");
+      return null;
+    }
+  }
+
+  Future<bool> deleteVendor(String id) async {
+    try {
+      final response = await apiFetcher.post(
+        '/vendor/delete',
+        body: {'id': id},
+      );
+
+      if (response.status == 200 && response.data['success'] == true) {
+        return true;
+      } else {
+        print('Erreur API: ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      print('Exception lors de la suppression: $e');
+      return false;
     }
   }
 }

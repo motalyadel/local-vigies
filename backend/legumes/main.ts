@@ -380,16 +380,106 @@ app.put(
 // ===========================
 // 🔴 Endpoint: Supprimer un vendeur
 // ===========================
-app.delete("/vendor/delete/:id", async ({ params, set }) => {
-  const { error } = await supabase.from("vendors").delete().eq("id", params.id);
+// Route : POST /vendor/delete
+app.post(
+  "/vendor/delete",
+  async ({ body, set }) => {
+    const { id } = body as { id: string };
 
-  if (error) {
-    set.status = 400;
-    return { success: false, error: error.message };
+    if (!id) {
+      set.status = 400;
+      return { success: false, error: "ID du vendeur manquant" };
+    }
+
+    try {
+      console.log(`Début suppression vendeur ID: ${id}`);
+
+      // 1. Supprimer le rôle (user_roles)
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", id);
+
+      if (roleError) {
+        console.error("Erreur suppression user_roles:", roleError);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Impossible de supprimer le rôle",
+          details: roleError.message,
+        };
+      }
+      console.log("Supprimé de user_roles");
+
+      // 2. Supprimer les données spécifiques au vendeur
+      const { error: vendorError } = await supabase
+        .from("vendors")
+        .delete()
+        .eq("id", id);
+
+      if (vendorError) {
+        console.error("Erreur suppression vendors:", vendorError);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Impossible de supprimer le profil vendeur",
+          details: vendorError.message,
+        };
+      }
+      console.log("Supprimé de vendors");
+
+      // 3. Supprimer l'utilisateur dans la table users
+      const { error: usersError } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", id);
+
+      if (usersError) {
+        console.error("Erreur suppression users:", usersError);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Impossible de supprimer l'utilisateur",
+          details: usersError.message,
+        };
+      }
+      console.log("Supprimé de users");
+
+      // 4. Supprimer l'utilisateur dans auth.users (le plus important !)
+      const { error: authError } = await supabase.auth.admin.deleteUser(id);
+
+      if (authError) {
+        console.error("Erreur suppression auth.users:", authError);
+        set.status = 500;
+        return {
+          success: false,
+          error: "Impossible de supprimer le compte authentifié",
+          details: authError.message,
+        };
+      }
+      console.log("Supprimé de auth.users");
+
+      return {
+        success: true,
+        message: "Vendeur supprimé avec succès",
+        user_id: id,
+      };
+    } catch (e: any) {
+      console.error("Erreur inattendue lors de la suppression du vendeur:", e);
+      set.status = 500;
+      // // return {
+      //   success: false,
+      //   error: "Erreur serveur",
+      return { success: false, error: "Erreur serveur interne" };
+      // };
+    }
+  },
+  {
+    body: t.Object({
+      id: t.String({ format: "uuid" }), // Optionnel : valide que c’est un UUID
+    }),
   }
-
-  return { success: true, message: "Vendor deleted successfully" };
-});
+);
 
 app.listen(4000);
 console.log("🚀 API running on http://localhost:4000");

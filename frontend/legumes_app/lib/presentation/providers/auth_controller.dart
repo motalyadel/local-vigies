@@ -168,7 +168,7 @@ class AuthController extends ChangeNotifier {
   void pushToHome() {
     switch (currentRole) {
       case 'admin':
-        AppNavigator.pushReplacement('/admin_home');
+        AppNavigator.pushReplacement('/admin_vendors');
         break;
       case 'vendor':
         AppNavigator.pushReplacement('/vendor_home');

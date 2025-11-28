@@ -4,7 +4,9 @@ import 'package:legumes_app/core/utils/navigator.dart';
 import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/auth_controller.dart';
 import 'package:legumes_app/presentation/providers/local_provider.dart';
-import 'package:legumes_app/presentation/screens/admin/admin_home_page.dart';
+import 'package:legumes_app/presentation/providers/vendor_management_controller.dart';
+import 'package:legumes_app/presentation/providers/vendor_update_controller.dart';
+import 'package:legumes_app/presentation/screens/admin/admin_vendor_management_page.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/home/register_page.dart';
 import 'package:legumes_app/presentation/screens/home/splash_screen.dart';
@@ -23,6 +25,8 @@ void main() async {
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => LocaleProvider()),
     ChangeNotifierProvider.value(value: AuthController()),
+    ChangeNotifierProvider(create: (_) => VendorManagementController()),
+    ChangeNotifierProvider(create: (_) => VendorUpdateController()),
   ], child: const MyApp()));
 }
 
@@ -52,10 +56,9 @@ class MyApp extends StatelessWidget {
           '/': (_) => const SplashScreen(),
           '/login': (_) => const LoginPage(),
           '/signup': (_) => const RegisterPage(),
-          '/admin_home': (_) => AdminHomePage(),
+          '/admin_vendors': (_) => AdminVendorManagementPage(),
           '/vendor_home': (_) => VendorHomePage(),
         },
-
         onUnknownRoute: (settings) {
           print('Route inconnue : ${settings.name}');
           return MaterialPageRoute(builder: (context) => const LoginPage());
