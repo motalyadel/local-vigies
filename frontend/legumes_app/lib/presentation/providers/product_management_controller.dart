@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:legumes_app/data/services/product_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProductManagementController extends ChangeNotifier {
   final ProductService _service = ProductService();
@@ -111,6 +112,45 @@ class ProductManagementController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> updatePriceDirectly(String productId, double newPrice) async {
+  loading = true;
+  notifyListeners();
+
+  try {
+    final response = await Supabase.instance.client
+        .from('products')
+        .update({
+          'price': newPrice,
+          'updated_at': DateTime.now().toIso8601String(),
+          'date': DateTime.now().toIso8601String().split('T')[0], // date du jour
+        })
+        .eq('id', productId)
+        .select(); // important pour avoir la réponse
+
+    if (response.isEmpty) {
+      error = "Produit non trouvé ou vous n'êtes pas autorisé";
+      return false;
+    }
+
+    // Mise à jour locale
+    final index = products.indexWhere((p) => p.id == productId);
+    if (index != -1) {
+      products[index] = products[index].copyWith(price: newPrice);
+      notifyListeners();
+    }
+
+    return true;
+  } 
+  catch (e) {
+    error = "Erreur : $e";
+    print("Erreur update price: $e");
+    return false;
+  } finally {
+    loading = false;
+    notifyListeners();
+  }
+}
 
   // Supprimer un produit
   Future<void> deleteProduct(String id) async {
