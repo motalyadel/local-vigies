@@ -481,5 +481,215 @@ app.post(
   }
 );
 
+// === 1. Créer un produit (Vendor only) ===
+app.post(
+  "/product/create",
+  async ({ body, headers, set }) => {
+    const { name, price, quantity, image_url, date } = body;
+
+    // Authentification
+    const token = headers.authorization?.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      set.status = 401;
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const roles = user.user_metadata?.roles || [];
+    if (!roles.includes("vendor") && !roles.includes("admin")) {
+      set.status = 403;
+      return {
+        success: false,
+        error: "Seul un vendeur peut ajouter un produit",
+      };
+    }
+
+    const vendor_id = user.id;
+
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        vendor_id,
+        name,
+        price: parseFloat(price),
+        quantity: parseInt(quantity),
+        image_url: image_url || null,
+        date: date || new Date().toISOString().split("T")[0],
+      })
+      .select()
+      .single();
+
+    if (error) {
+      set.status = 400;
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, product: data };
+  },
+  {
+    body: t.Object({
+      name: t.String(),
+      price: t.String(), // string car on parse après
+      quantity: t.String(),
+      image_url: t.Optional(t.String()),
+      date: t.Optional(t.String()),
+    }),
+  }
+);
+
+// === 2. Récupérer les produits d’un vendeur ===
+app.get("/product/vendor/:id", async ({ params, headers, set }) => {
+  const { id } = params;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, vendor:vendors(shop_name, photo_url)")
+    .eq("vendor_id", id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    set.status = 400;
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, products: data || [] };
+});
+
+// === 3. Mettre à jour un produit (seul le propriétaire) ===
+app.put("/product/update/:id", async ({ params, body, headers, set }) => {
+  const { id } = params;
+
+  // === Authentification ===
+  const token = headers.authorization?.replace("Bearer ", "");
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    set.status = 401;
+    return { success: false, error: "Unauthorized" };
+  }
+
+  // === Vérifier que le produit appartient au vendeur ===
+  const { data: product, error: fetchError } = await supabase
+    .from("products")
+    .select("vendor_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !product) {
+    set.status = 404;
+    return { success: false, error: "Produit non trouvé" };
+  }
+
+  const isOwner = product.vendor_id === user.id;
+  const isAdmin = user.user_metadata?.roles?.includes("admin") || false;
+  if (!isOwner && !isAdmin) {
+    set.status = 403;
+    return { success: false, error: "Accès refusé" };
+  }
+
+  // === Nettoyage et validation du body (corrige l'erreur TS) ===
+  const updates: Record<string, any> = {};
+  if (typeof body === "object" && body !== null) {
+    const b = body as any;
+    if (b.name !== undefined) updates.name = String(b.name).trim();
+    if (b.price !== undefined) {
+      const p = parseFloat(b.price);
+      if (!isNaN(p)) updates.price = p;
+    }
+    if (b.quantity !== undefined) {
+      const q = parseInt(b.quantity);
+      if (!isNaN(q)) updates.quantity = q;
+    }
+    if (b.image_url !== undefined) updates.image_url = b.image_url || null;
+    if (b.date !== undefined) updates.date = b.date;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    set.status = 400;
+    return { success: false, error: "Aucune donnée à mettre à jour" };
+  }
+
+  // === Mise à jour ===
+  const { data, error } = await supabase
+    .from("products")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    set.status = 400;
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, product: data };
+});
+
+// === 4. Supprimer un produit (seul le propriétaire) ===
+app.delete("/product/delete/:id", async ({ params, headers, set }) => {
+  const { id } = params;
+
+  const token = headers.authorization?.replace("Bearer ", "");
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    set.status = 401;
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const { data: product, error: fetchError } = await supabase
+    .from("products")
+    .select("vendor_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !product) {
+    set.status = 404;
+    return { success: false, error: "Produit non trouvé" };
+  }
+
+  if (
+    product.vendor_id !== user.id &&
+    !user.user_metadata?.roles?.includes("admin")
+  ) {
+    set.status = 403;
+    return {
+      success: false,
+      error: "Vous ne pouvez supprimer que vos produits",
+    };
+  }
+
+  const { error } = await supabase.from("products").delete().eq("id", id);
+
+  if (error) {
+    set.status = 400;
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, message: "Produit supprimé avec succès" };
+});
+
+// === 5. Lister tous les produits (public ou admin) ===
+app.get("/product/list", async ({ headers, set }) => {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, vendor:vendors(shop_name, photo_url, location)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    set.status = 400;
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, products: data || [] };
+});
+
 app.listen(4000);
 console.log("🚀 API running on http://localhost:4000");

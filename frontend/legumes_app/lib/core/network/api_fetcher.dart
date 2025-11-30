@@ -8,6 +8,7 @@ class ApiFetcher {
   String? accessToken;
   String? refreshToken;
   ApiFetcher({this.accessToken, this.refreshToken, required String baseUrl});
+
   Future<FetcherResponse> get(String path) async {
     final dio = Dio();
     dio
@@ -21,18 +22,64 @@ class ApiFetcher {
 
     try {
       final response = await dio.get('/$path');
+      final responseBody = response.data;
+
+      return FetcherResponse(
+        status: response.statusCode ?? 200,
+        url: path,
+        data: tryDecodeJson(responseBody),
+        error: response.statusCode == 200 || response.statusCode == 201 ? null : responseBody.toString(),      );
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        print('Réponse avec erreur : ${e.response!.data}');
+      }
+      return FetcherResponse(
+        status: 0,
+        url: path,
+        error: e.toString(),
+      );
+    }
+  }
+
+  // Dans ta classe ApiFetcher
+  Future<FetcherResponse> getWithId(
+    String pathTemplate, {
+    required String id,
+    Map<String, dynamic>? queryParams,
+  }) async {
+    // Remplace :id dans le path par la vraie valeur
+    final path = pathTemplate.replaceAll(':id', id);
+
+    final dio = Dio()
+      ..httpClientAdapter = IOHttpClientAdapter()
+      ..options.baseUrl = baseUrl
+      ..options.headers = {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'aby',
+        if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+      };
+
+    try {
+      final response = await dio.get(
+        '/$path',
+        queryParameters: queryParams,
+      );
 
       final responseBody = response.data;
 
       return FetcherResponse(
         status: response.statusCode ?? 200,
-        url: '',
+        url: path,
         data: tryDecodeJson(responseBody),
-        error: response.statusCode == 200 ? responseBody : null,
+        error: response.statusCode == 200 || response.statusCode == 201
+            ? null
+            : (responseBody is Map
+                ? responseBody['error'] ?? responseBody.toString()
+                : responseBody.toString()),
       );
     } catch (e) {
       if (e is DioException && e.response != null) {
-        print('❌ Réponse avec erreur : ${e.response!.data}');
+        print('Error response: ${e.response!.data}');
       }
       return FetcherResponse(
         status: 0,
@@ -100,6 +147,53 @@ class ApiFetcher {
       }
     }
     return source; // Retourne directement la Map si c'est déjà un objet JSON
+  }
+
+  Future<FetcherResponse> put(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    final dio = Dio()
+      ..httpClientAdapter = IOHttpClientAdapter()
+      ..options.baseUrl = baseUrl
+      ..options.headers = {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'aby',
+        if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+      };
+
+    try {
+      print('Envoi PUT vers : ${dio.options.baseUrl}/$path');
+      print('Body : $body');
+
+      final response = await dio.put(
+        '/$path',
+        data: body != null ? jsonEncode(body) : null,
+      );
+
+      print('Réponse PUT ${response.statusCode} : ${response.data}');
+
+      final responseBody = response.data;
+
+      return FetcherResponse(
+        status: response.statusCode ?? 400,
+        url: path,
+        data: tryDecodeJson(responseBody),
+        error: response.statusCode != 200 && response.statusCode != 201
+            ? (responseBody is Map
+                ? responseBody['error'] ?? responseBody.toString()
+                : responseBody.toString())
+            : null,
+      );
+    } catch (e, stackTrace) {
+      print('PUT request failed: $e');
+      print('Stack trace: $stackTrace');
+      return FetcherResponse(
+        status: 0,
+        url: path,
+        error: e.toString(),
+      );
+    }
   }
 
   Future<FetcherResponse> delete(String path) async {
