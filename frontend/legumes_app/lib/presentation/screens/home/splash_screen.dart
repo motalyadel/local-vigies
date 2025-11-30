@@ -1,3 +1,5 @@
+// presentation/screens/splash/splash_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:legumes_app/presentation/providers/auth_controller.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
@@ -12,79 +14,54 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  bool _hasRedirected = false;
-  String? _error;
-
-  Future<void> redirect() async {
-  if (_hasRedirected) return;
-  setState(() => _hasRedirected = true);
-
-  try {
-    print('Début de la redirection dans SplashScreen');
-    await Future.delayed(const Duration(seconds: 3)); // Splash delay
-
-    final authController = Provider.of<AuthController>(context, listen: false);
-    final success = await authController.redirect();
-
-    if (!success) {
-      print("Aucune session trouvée → Navigation vers /login");
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-    } else {
-      print("Redirection vers home effectuée avec succès ✅");
-    }
-  } catch (e, s) {
-    print('Erreur lors de la redirection : $e');
-    print('Stack trace : $s');
-    setState(() => _error = 'Erreur : $e');
-
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-}
-
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialisation de l'animation
-    _animationController = AnimationController(
+    // Animation fluide
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1800),
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    );
-
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2),
+      begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-    _animationController.forward();
+    _controller.forward();
 
-    // Lancer la redirection
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('Lancement de redirect() depuis initState');
-      redirect();
+    // Lancer la vérification d'authentification après un léger délai
+    Future.delayed(const Duration(milliseconds: 800), () {
+      _checkAuthAndRedirect();
     });
+  }
+
+  Future<void> _checkAuthAndRedirect() async {
+    if (!mounted) return;
+
+    final authController = Provider.of<AuthController>(context, listen: false);
+
+    try {
+      print('SplashScreen : Vérification de la session en cours...');
+      await authController.redirect(); // Cette fonction gère TOUT maintenant
+    } catch (e, s) {
+      print('Erreur critique dans SplashScreen : $e\n$s');
+      // En cas d'erreur grave → on va quand même à la page publique (sécurisé)
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/consumer_home');
+      }
+    }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -100,32 +77,45 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.local_grocery_store,
-                  size: 80,
-                  color: Colors.white,
+                // Icône du marché
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.local_grocery_store_outlined,
+                    size: 90,
+                    color: Colors.white,
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
+
+                // Titre
                 const Text(
                   'Marché Local',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 1.2,
+                    letterSpacing: 1.5,
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (_error != null) ...[
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                    textAlign: TextAlign.center,
+                const SizedBox(height: 12),
+                const Text(
+                  'Les meilleurs produits près de chez vous',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
                   ),
-                  const SizedBox(height: 10),
-                ],
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                ),
+                const SizedBox(height: 48),
+
+                // Indicateur de chargement
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
                 ),
               ],
             ),

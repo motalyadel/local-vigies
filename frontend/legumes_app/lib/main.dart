@@ -8,6 +8,7 @@ import 'package:legumes_app/presentation/providers/product_management_controller
 import 'package:legumes_app/presentation/providers/vendor_management_controller.dart';
 import 'package:legumes_app/presentation/providers/vendor_update_controller.dart';
 import 'package:legumes_app/presentation/screens/admin/admin_vendor_management_page.dart';
+import 'package:legumes_app/presentation/screens/consumer/consumer_home_page.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/home/register_page.dart';
 import 'package:legumes_app/presentation/screens/home/splash_screen.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
           '/signup': (_) => const RegisterPage(),
           '/admin_vendors': (_) => AdminVendorManagementPage(),
           '/vendor_home': (_) => VendorHomePage(),
+          '/consumer_home': (_) => const ConsumerHomePage(),
         },
         onUnknownRoute: (settings) {
           print('Route inconnue : ${settings.name}');

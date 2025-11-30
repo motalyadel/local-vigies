@@ -58,25 +58,28 @@ class AuthController extends ChangeNotifier {
   //   }
   // }
 
-  Future<bool> redirect() async {
-    try {
-      final response = await clientSpb.auth.getUser();
-      final user = response.user;
+ Future<bool> redirect() async {
+  try {
+    final response = await clientSpb.auth.getUser();
+    final user = response.user;
 
-      if (user == null) {
-        print("Aucun utilisateur connecté → redirection vers login");
-        return false; // 👈 aucun utilisateur connecté
-      }
-
-      print("Utilisateur trouvé : ${user.email}");
-      _service = VendorService();
-      await getUserAndPushToHome();
-      return true; // ✅ utilisateur trouvé et redirigé
-    } catch (e, s) {
-      print("Erreur redirect(): $e\n$s");
-      return false; // ❌ erreur = rediriger vers login
+    if (user == null) {
+      print("Aucun utilisateur connecté → Page publique");
+      AppNavigator.pushReplacement('/consumer_home'); // Page publique
+      return false;
     }
+
+    print("Utilisateur connecté : ${user.email}");
+    _service = VendorService();
+    await getUserAndPushToHome();
+    return true;
+
+  } catch (e, s) {
+    print("Erreur redirect(): $e\n$s");
+    AppNavigator.pushReplacement('/consumer_home'); // Même en cas d'erreur → page publique
+    return false;
   }
+}
 
   // Future<void> getUserAndPushToHome() async {
   //   try {
@@ -166,17 +169,18 @@ class AuthController extends ChangeNotifier {
   // }
 
   void pushToHome() {
-    switch (currentRole) {
-      case 'admin':
-        AppNavigator.pushReplacement('/admin_vendors');
-        break;
-      case 'vendor':
-        AppNavigator.pushReplacement('/vendor_home');
-        break;
-      default:
-        AppNavigator.pushReplacement('/login');
-    }
+  switch (currentRole) {
+    case 'admin':
+      AppNavigator.pushReplacement('/admin_vendors');
+      break;
+    case 'vendor':
+      AppNavigator.pushReplacement('/vendor_home');
+      break;
+    default:
+      // Ne jamais arriver ici car redirect() gère déjà les non-connectés
+      AppNavigator.pushReplacement('/consumer_home');
   }
+}
 
   Future<bool> canAccessAdminFeatures() async {
     await getUser();
