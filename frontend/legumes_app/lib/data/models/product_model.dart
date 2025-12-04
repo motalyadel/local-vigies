@@ -15,6 +15,7 @@ class Product {
   final String? vendorShopName;
   final String? vendorPhotoUrl;
   final String? vendorLocation;
+  final String? vendorPhone;
 
   Product({
     required this.id,
@@ -29,6 +30,7 @@ class Product {
     this.vendorShopName,
     this.vendorPhotoUrl,
     this.vendorLocation,
+    this.vendorPhone,
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
@@ -58,6 +60,7 @@ class Product {
     vendorShopName: vendorData?['shop_name']?.toString(),
     vendorPhotoUrl: vendorData?['photo_url']?.toString(),
     vendorLocation: vendorData?['location']?.toString(),
+    vendorPhone: vendorData?['phone']?.toString(),
   );
 }
 

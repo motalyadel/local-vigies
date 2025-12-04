@@ -159,3 +159,20 @@ class AppRole {
     );
   }
 }
+
+
+class Consumateur {
+  final String id;
+  final String name;
+  final String phone;
+
+  Consumateur({required this.id, required this.name, required this.phone});
+
+  factory Consumateur.fromMap(Map<String, dynamic> map) {
+    return Consumateur(
+      id: map['id'] as String,
+      name: map['name'] as String? ?? 'Client inconnu',
+      phone: map['phone'] as String? ?? 'Non renseigné',
+    );
+  }
+}

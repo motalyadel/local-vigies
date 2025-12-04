@@ -1,204 +1,512 @@
-// presentation/screens/consumer/consumer_home_page.dart
+// presentation/pages/consumer/consumer_home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:legumes_app/core/services/local_storage_service.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:legumes_app/data/services/product_service.dart';
+import 'package:legumes_app/presentation/screens/home/login_page.dart';
+import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
 class ConsumerHomePage extends StatefulWidget {
   const ConsumerHomePage({super.key});
-
   @override
   State<ConsumerHomePage> createState() => _ConsumerHomePageState();
 }
 
 class _ConsumerHomePageState extends State<ConsumerHomePage> {
-  final ProductService _service = ProductService();
-  List<Product> _products = [];
-  List<Product> _filteredProducts = [];
-  bool _loading = true;
-  String _searchQuery = '';
+  late Future<List<Product>> _productsFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _productsFuture = ProductService().getAllProducts();
   }
 
-  Future<void> _loadProducts() async {
-    setState(() => _loading = true);
-    try {
-      _products = await _service.getAllProducts();
-      _filteredProducts = _products;
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error loading products: $e')));
-    } finally {
-      setState(() => _loading = false);
+  Future<void> _refresh() async {
+    setState(() => _productsFuture = ProductService().getAllProducts());
+  }
+
+  void _openChat(Product product) async {
+    String? consumerId = await LocalStorageService.getConsumerId();
+
+    // Si on n'a jamais créé de consommateur → on le crée
+    if (consumerId == null) {
+      final nameCtrl = TextEditingController();
+      final phoneCtrl = TextEditingController();
+
+      final result = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Commencer le chat"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Entrez vos coordonnées pour discuter"),
+              const SizedBox(height: 16),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: "Nom")),
+              TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: "Téléphone")),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Annuler")),
+            ElevatedButton(
+              onPressed: () {
+                if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
+                  Navigator.pop(ctx, "ok");
+                }
+              },
+              child: const Text("Démarrer"),
+            ),
+          ],
+        ),
+      );
+
+      if (result != "ok") return;
+
+      try {
+        final consumerRes = await Supabase.instance.client
+            .from('consumers')
+            .insert({
+              'name': nameCtrl.text.trim(),
+              'phone': phoneCtrl.text.trim(),
+            })
+            .select()
+            .single();
+
+        consumerId = consumerRes['id'].toString();
+        await LocalStorageService.saveConsumerId(consumerId); // ON SAUVEGARDE !
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Erreur : $e")));
+        return;
+      }
     }
+
+    // Maintenant on ouvre le chat → même après fermeture de l’app
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConsumerChatScreen(
+          product: product,
+          consumerId: consumerId!,
+        ),
+      ),
+    );
   }
 
-  void _filterProducts(String query) {
-    setState(() {
-      _searchQuery = query.toLowerCase();
-      _filteredProducts = _products.where((p) {
-        final nameMatch = p.name.toLowerCase().contains(_searchQuery);
-        final vendorMatch =
-            p.vendorShopName?.toLowerCase().contains(_searchQuery) ?? false;
-        return nameMatch || vendorMatch;
-      }).toList();
-    });
+  Future<void> _showOrderDialog(Product product) async {
+    // ... ton code existant (je le garde identique)
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final quantityCtrl = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Commander en quelques secondes",
+            textAlign: TextAlign.center),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: product.imageUrl != null
+                    ? NetworkImage(product.imageUrl!)
+                    : null,
+                child: product.imageUrl == null
+                    ? const Icon(Icons.shopping_basket, size: 30)
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              Text(product.name,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text("${product.price.toStringAsFixed(0)} MRU/kg",
+                  style: const TextStyle(
+                      fontSize: 20,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold)),
+              const Divider(height: 32),
+              const Text("Vos coordonnées (une seule fois)"),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                      labelText: "Nom complet",
+                      prefixIcon: Icon(Icons.person))),
+              TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                      labelText: "Téléphone", prefixIcon: Icon(Icons.phone))),
+              TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                      labelText: "Quartier / Adresse",
+                      prefixIcon: Icon(Icons.location_on))),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: quantityCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: "Quantité (kg)",
+                      prefixIcon: Icon(Icons.scale))),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Annuler")),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 24)),
+            onPressed: () {
+              if (nameCtrl.text.trim().isNotEmpty &&
+                  phoneCtrl.text.trim().length >= 8 &&
+                  locationCtrl.text.trim().isNotEmpty &&
+                  quantityCtrl.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, "ok");
+              }
+            },
+            icon: const Icon(Icons.send),
+            label: const Text("Envoyer"),
+          ),
+        ],
+      ),
+    );
+
+    if (result != "ok") return;
+
+    try {
+      final consumerRes = await Supabase.instance.client
+          .from('consumers')
+          .insert({
+            'name': nameCtrl.text.trim(),
+            'phone': phoneCtrl.text.trim(),
+            'location': locationCtrl.text.trim(),
+          })
+          .select()
+          .single();
+
+      await Supabase.instance.client.from('product_requests').insert({
+        'product_id': product.id,
+        'product_name': product.name,
+        'price_at_request': product.price,
+        'consumer_id': consumerRes['id'],
+        'quantity': double.tryParse(quantityCtrl.text) ?? 1.0,
+        'customer_location': locationCtrl.text.trim(),
+        'vendor_id': product.vendorId,
+        'vendor_shop_name': product.vendorShopName ?? 'Boutique',
+        'status': 'pending',
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text("Demande envoyée ! Le vendeur vous appellera très vite"),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur : $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Market Products'),
-        backgroundColor: Colors.orange,
+        title: const Text("Marché Local"),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
-          // Bouton "Se connecter" en haut à droite
           TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).pushNamed('/login');
-            },
+            onPressed: () => Navigator.of(context).pushNamed('/login'),
             icon: const Icon(Icons.login, color: Colors.white),
-            label: const Text(
-              'Se connecter',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.2),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
+            label: const Text('Se connecter',
+                style: TextStyle(color: Colors.white)),
           ),
-
-          // Optionnel : garder le bouton refresh à côté
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadProducts,
-            tooltip: 'Actualiser',
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
         ],
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by product or vendor...',
-                prefixIcon: const Icon(Icons.search),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-              onChanged: _filterProducts,
+      body: FutureBuilder<List<Product>>(
+        future: _productsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final products = snapshot.data ?? [];
+          if (products.isEmpty) {
+            return const Center(child: Text("Aucun produit"));
+          }
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.62,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
-          ),
+            itemCount: products.length,
+            itemBuilder: (_, i) {
+              final p = products[i];
+              final phone = p.vendorPhone ?? "Non renseigné";
 
-          // Optional Category Filter (placeholder for later)
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 12),
-          //   child: DropdownButton<String>(
-          //     value: 'All',
-          //     items: ['All', 'Fruits', 'Vegetables', 'Others'].map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
-          //     onChanged: (value) { /* Implement category filter later */ },
-          //   ),
-          // ),
-
-          Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.orange))
-                : _filteredProducts.isEmpty
-                    ? const Center(child: Text('No products found'))
-                    : RefreshIndicator(
-                        onRefresh: _loadProducts,
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(12),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                          itemCount: _filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            final p = _filteredProducts[index];
-                            return Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(12)),
-                                      child: p.imageUrl != null
-                                          ? Image.network(
-                                              p.imageUrl!,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const Icon(Icons.broken_image,
-                                                      size: 80),
-                                            )
-                                          : Container(
-                                              color: Colors.grey[300],
-                                              child: const Icon(Icons.image,
-                                                  size: 80),
-                                            ),
+              return Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12)),
+                        child: p.imageUrl != null
+                            ? Image.network(p.imageUrl!, fit: BoxFit.cover)
+                            : Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image, size: 60)),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15),
+                                maxLines: 1),
+                            Text("${p.price.toStringAsFixed(0)} MRU",
+                                style: const TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold)),
+                            // const SizedBox(height: 6),
+                            // Text(p.vendorShopName ?? "Boutique",
+                            //     style: const TextStyle(
+                            //         fontSize: 13, fontWeight: FontWeight.w600)),
+                            // Text("Tel: $phone",
+                            //     style: TextStyle(
+                            //         fontSize: 12, color: Colors.grey[700])),
+                            // const Spacer(),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _showOrderDialog(p),
+                                    icon: const Icon(
+                                        Icons.shopping_cart_outlined,
+                                        size: 16),
+                                    label: const Text("Commander",
+                                        style: TextStyle(fontSize: 8)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
                                     ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          p.name,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${p.price.toStringAsFixed(0)} MRU',
-                                          style: const TextStyle(
-                                              color: Colors.green,
-                                              fontSize: 14),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'By: ${p.vendorShopName ?? 'Unknown Vendor'}',
-                                          style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 12),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _openChat(p),
+                                    icon: const Icon(Icons.chat_bubble_outline,
+                                        size: 16),
+                                    label: const Text("Chat",
+                                        style: TextStyle(fontSize: 11)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
                                     ),
                                   ),
-                                ],
-                              ),
-                            );
-                          },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-          ),
-        ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ConsumerChatScreen extends StatefulWidget {
+  final Product product;
+  final String consumerId;
+
+  const ConsumerChatScreen({
+    super.key,
+    required this.product,
+    required this.consumerId,
+  });
+
+  @override
+  State<ConsumerChatScreen> createState() => _ConsumerChatScreenState();
+}
+
+class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
+  List<types.Message> _messages = [];
+  late final types.User _consumer;
+  late final types.User _vendor;
+
+  @override
+  void initState() {
+    super.initState();
+    _consumer = types.User(id: widget.consumerId);
+    _vendor = types.User(
+      id: widget.product.vendorId,
+      firstName: widget.product.vendorShopName ?? "Vendeur",
+    );
+    _loadMessages();
+    _listenToRealtime();
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('messages')
+          .select()
+          .eq('consumer_id', widget.consumerId)
+          .eq('vendor_id', widget.product.vendorId)
+          .order('created_at', ascending: true);
+
+      final List<types.Message> loaded = response.map<types.TextMessage>((msg) {
+        return types.TextMessage(
+          author: msg['sender_type'] == 'vendor' ? _vendor : _consumer,
+          createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
+          id: msg['id'].toString(),
+          text: msg['text'],
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _messages = loaded.reversed.toList(); // WhatsApp style
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur chargement messages: $e");
+    }
+  }
+
+  void _listenToRealtime() {
+    Supabase.instance.client
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('vendor_id', widget.product.vendorId)
+        .listen((_) => _loadMessages());
+  }
+
+  void _handleSendPressed(types.PartialText message) async {
+    final tempMessage = types.TextMessage(
+      author: _consumer,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: message.text,
+    );
+
+    // Affichage IMMÉDIAT du message envoyé
+    setState(() {
+      _messages = [tempMessage, ..._messages]; // nouveau en haut
+    });
+
+    try {
+      await Supabase.instance.client.from('messages').insert({
+        'text': message.text,
+        'sender_type': 'consumer',
+        'consumer_id': widget.consumerId,
+        'vendor_id': widget.product.vendorId,
+        'product_id': widget.product.id,
+      });
+      // Le stream rechargera automatiquement → pas besoin de faire plus
+    } catch (e) {
+      setState(() {
+        _messages.removeWhere((m) => m.id == tempMessage.id);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Échec de l'envoi"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.product.vendorShopName ?? "Vendeur"),
+            Text(
+              "Tel: ${widget.product.vendorPhone ?? 'Non renseigné'}",
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+      ),
+      body: Chat(
+        messages: _messages,
+        onSendPressed: _handleSendPressed,
+        user: _consumer,
+        theme: const DefaultChatTheme(
+          primaryColor: Colors.green,
+          inputBackgroundColor: Colors.black,
+          sendButtonIcon:
+              Icon(Icons.send, color: Colors.white), // PLUS BESOIN D'ASSETS !
+          sentMessageBodyTextStyle: TextStyle(color: Colors.white),
+          receivedMessageBodyTextStyle: TextStyle(color: Colors.black87),
+        ),
       ),
     );
   }

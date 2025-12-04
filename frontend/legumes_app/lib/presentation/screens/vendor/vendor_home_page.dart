@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:legumes_app/presentation/screens/product/all_products_page.dart';
 import 'package:legumes_app/presentation/screens/product/my_products_page.dart';
+import 'package:legumes_app/presentation/screens/vendor/vendor_chat_list_screen.dart';
+import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
+import 'package:legumes_app/presentation/screens/vendor/vendor_requests_page.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -188,6 +191,31 @@ class VendorHomePage extends StatelessWidget {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading:
+                                  const Icon(Icons.chat, color: Colors.green),
+                              title: const Text("Mes Conversations"),
+                              trailing:
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const VendorChatListScreen(), // ← CORRIGÉ : va vers la liste
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading: const Icon(Icons.shopping_cart_outlined),
+                              title: const Text("Mes demandes"),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const VendorRequestsPage()),
                               ),
                             ),
                             const SizedBox(height: 12),

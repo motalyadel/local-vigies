@@ -680,7 +680,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
 app.get("/product/list", async ({ headers, set }) => {
   const { data, error } = await supabase
     .from("products")
-    .select("*, vendor:vendors(shop_name, photo_url, location)")
+    .select("*, vendor:vendors(shop_name, photo_url, location, phone)")
     .order("created_at", { ascending: false });
 
   if (error) {
