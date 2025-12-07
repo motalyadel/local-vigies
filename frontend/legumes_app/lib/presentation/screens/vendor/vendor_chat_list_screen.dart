@@ -29,7 +29,14 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
         .order('created_at', ascending: false);
   }
 
-  // Marque comme lu + force le refresh immédiat
+  // Ajoute cette fonction dans ta classe _VendorChatListScreenState
+  void _refreshUnreadCount() {
+    if (mounted) {
+      setState(
+          () {}); // Force le rebuild complet → badge disparaît immédiatement
+    }
+  }
+
   Future<void> _markAsReadAndRefresh(String consumerId) async {
     await Supabase.instance.client
         .from('messages')
@@ -39,7 +46,6 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
         .eq('sender_type', 'consumer')
         .eq('read', false);
 
-    // Force le rebuild immédiat → badge disparaît tout de suite
     if (mounted) setState(() {});
   }
 
@@ -53,16 +59,12 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _messagesStream,
         builder: (context, snapshot) {
           final messages = snapshot.data ?? [];
-
-          if (messages.isEmpty) {
-            return _buildEmptyState();
-          }
+          if (messages.isEmpty) return _buildEmptyState();
 
           final conversations = _buildConversations(messages);
           final consumerIds = conversations.keys.toList();
@@ -72,7 +74,6 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
             builder: (context, consumerSnapshot) {
               final consumerMap = consumerSnapshot.data ?? {};
 
-              // Liste triée par date du dernier message
               final sortedList = conversations.entries.map((e) {
                 final consumerId = e.key;
                 final conv = e.value;
@@ -81,7 +82,7 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                 return {
                   'consumer_id': consumerId,
                   'name': consumer?['name'] ?? 'Client inconnu',
-                  'phone': consumer?['phone'] ?? '',
+                  'phone': consumer?['phone'] ?? 'Non renseigné',
                   'last_message': conv.lastMessage,
                   'last_time': conv.lastTime,
                   'unread_count': conv.unreadCount,
@@ -98,17 +99,14 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                   final item = sortedList[index];
                   final unread = item['unread_count'] as int;
                   final hasUnread = unread > 0;
-                  final lastMsg = item['last_message'] as String;
-                  final isYou = lastMsg.startsWith("Vous :");
 
                   return InkWell(
                     onTap: () async {
-                      // 1. Marque comme lu → badge disparaît tout de suite
                       await _markAsReadAndRefresh(
                           item['consumer_id'] as String);
 
-                      // 2. Ouvre le chat
                       if (!mounted) return;
+
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -116,11 +114,13 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                             consumerId: item['consumer_id'] as String,
                             consumerName: item['name'] as String,
                             consumerPhone: item['phone'] as String,
+                            onMessagesRead:
+                                _refreshUnreadCount, // ← Ici ! On passe la fonction
                           ),
                         ),
                       );
 
-                      // 3. Refresh au retour (nouveau message envoyé ?)
+                      // Optionnel : refresh au retour (au cas où le vendor a envoyé un message)
                       if (mounted) setState(() {});
                     },
                     child: Padding(
@@ -128,7 +128,6 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                           vertical: 12, horizontal: 14),
                       child: Row(
                         children: [
-                          // Avatar
                           CircleAvatar(
                             radius: 28,
                             backgroundColor: hasUnread
@@ -145,8 +144,6 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                             ),
                           ),
                           const SizedBox(width: 14),
-
-                          // Nom + dernier message
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,46 +151,30 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                                 Text(
                                   item['name'] as String,
                                   style: TextStyle(
-                                    fontSize: 16.5,
+                                    fontSize: 16,
                                     fontWeight: hasUnread
                                         ? FontWeight.bold
                                         : FontWeight.w600,
                                   ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['last_message'] as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: hasUnread
+                                        ? Colors.black87
+                                        : Colors.grey.shade600,
+                                    fontWeight: hasUnread
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 5),
-                                Row(
-                                  children: [
-                                    if (isYou)
-                                      const Icon(Icons.done_all,
-                                          size: 17, color: Colors.blue),
-                                    if (isYou) const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        lastMsg,
-                                        style: TextStyle(
-                                          fontSize: 14.2,
-                                          color: hasUnread
-                                              ? Colors.black87
-                                              : (isYou
-                                                  ? Colors.green.shade700
-                                                  : Colors.grey.shade600),
-                                          fontWeight: hasUnread
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
                           ),
-
-                          // Heure + badge
                           Column(
                             children: [
                               Text(
@@ -210,12 +191,12 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                               const SizedBox(height: 8),
                               if (hasUnread)
                                 Container(
-                                  padding: const EdgeInsets.all(7),
+                                  padding: const EdgeInsets.all(6),
                                   decoration: const BoxDecoration(
                                       color: Colors.red,
                                       shape: BoxShape.circle),
                                   constraints:
-                                      const BoxConstraints(minWidth: 24),
+                                      const BoxConstraints(minWidth: 22),
                                   child: Text(
                                     unread > 99 ? "99+" : unread.toString(),
                                     style: const TextStyle(
@@ -240,7 +221,7 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
     );
   }
 
-  // TRAITE TOUS LES MESSAGES (client ET vendeur)
+  // Affiche le vrai dernier message (vendor ou consumer)
   Map<String, _Conversation> _buildConversations(
       List<Map<String, dynamic>> messages) {
     final map = <String, _Conversation>{};
@@ -249,28 +230,38 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
       final consumerId = msg['consumer_id'] as String?;
       if (consumerId == null) continue;
 
-      final isFromVendor = msg['sender_type'] == 'vendor';
-      final isRead = msg['read'] == true;
       final text = (msg['text'] as String?)?.trim() ?? '';
-      final displayText = text.isEmpty ? "Photo" : text;
-      final finalText = isFromVendor ? "Vous : $displayText" : displayText;
+      final displayText = text.isEmpty ? "[Photo]" : text;
       final time = msg['created_at'] as String;
+      final isFromVendor = msg['sender_type'] == 'vendor';
+      final isRead = (msg['read'] as bool?) ?? false;
 
+      final messageDate = DateTime.parse(time);
+
+      // Si la conversation n'existe pas encore OU si ce message est plus récent
       if (!map.containsKey(consumerId)) {
         map[consumerId] = _Conversation(
-          lastMessage: finalText,
+          lastMessage: displayText,
           lastTime: time,
-          unreadCount: isFromVendor || isRead ? 0 : 1,
+          unreadCount: (isFromVendor || isRead) ? 0 : 1,
         );
       } else {
         final conv = map[consumerId]!;
-        conv.lastMessage = finalText;
-        conv.lastTime = time;
+        final currentLastDate = DateTime.parse(conv.lastTime);
+
+        // On garde uniquement le message le plus récent
+        if (messageDate.isAfter(currentLastDate)) {
+          conv.lastMessage = displayText;
+          conv.lastTime = time;
+        }
+
+        // On compte les non-lus uniquement si c'est du consommateur et pas lu
         if (!isFromVendor && !isRead) {
           conv.unreadCount += 1;
         }
       }
     }
+
     return map;
   }
 
@@ -298,17 +289,17 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 90, color: Colors.grey[400]),
-          const SizedBox(height: 20),
-          const Text("Aucune conversation",
+          Icon(Icons.chat_bubble_outline, size: 90, color: Colors.grey),
+          SizedBox(height: 20),
+          Text("Aucune conversation",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text("Les messages de vos clients apparaîtront ici",
-              style: TextStyle(color: Colors.grey[600])),
+              style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
@@ -320,10 +311,9 @@ class _Conversation {
   String lastTime;
   int unreadCount = 0;
 
-  _Conversation(
-      {required this.lastMessage,
-      required this.lastTime,
-      int unreadCount = 0}) {
-    this.unreadCount = unreadCount;
-  }
+  _Conversation({
+    required this.lastMessage,
+    required this.lastTime,
+    int unreadCount = 0,
+  }) : unreadCount = unreadCount;
 }

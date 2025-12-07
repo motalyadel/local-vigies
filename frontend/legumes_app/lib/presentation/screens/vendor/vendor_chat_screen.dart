@@ -11,7 +11,6 @@ class VendorChatScreen extends StatefulWidget {
   final String consumerName;
   final String consumerPhone;
   final VoidCallback? onMessagesRead;
-  // final Product product; // NOUVEAU : on passe le produit
 
   const VendorChatScreen({
     super.key,
@@ -19,7 +18,6 @@ class VendorChatScreen extends StatefulWidget {
     required this.consumerName,
     required this.consumerPhone,
     this.onMessagesRead,
-    // required this.product,
   });
 
   @override
@@ -42,7 +40,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
       metadata: {'phone': widget.consumerPhone},
     );
 
-    _markMessagesAsRead(); // ← IMPORTANT : marquer comme lu dès l'ouverture
+    _markMessagesAsRead();
     _loadMessages();
     _listenToRealtime();
   }
@@ -51,7 +49,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
     try {
       final response = await Supabase.instance.client
           .from('messages')
-          .select('*, consumers(name, phone)')
+          .select()
           .eq('vendor_id', _vendor.id)
           .eq('consumer_id', widget.consumerId)
           .order('created_at', ascending: true);
@@ -88,9 +86,12 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
     Supabase.instance.client
         .from('messages')
         .stream(primaryKey: ['id'])
-        // .eq('vendor_id', _vendor.id)
         .eq('consumer_id', widget.consumerId)
-        .listen((_) => _loadMessages());
+        // .eq('vendor_id', _vendor.id)
+        .listen((_) {
+          _loadMessages();
+          _markMessagesAsRead(); // Re-marque au cas où
+        });
   }
 
   void _handleSendPressed(types.PartialText message) async {
@@ -113,7 +114,6 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
         'sender_type': 'vendor',
         'vendor_id': _vendor.id,
         'consumer_id': widget.consumerId,
-        // 'product_id': widget.product.id,
       });
     } catch (e) {
       if (mounted) {
@@ -122,9 +122,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Échec de l'envoi"),
-            backgroundColor: Colors.red,
-          ),
+              content: Text("Échec de l'envoi"), backgroundColor: Colors.red),
         );
       }
     }
@@ -138,8 +136,8 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
           .eq('consumer_id', widget.consumerId)
           .eq('vendor_id', _vendor.id)
           .eq('sender_type', 'consumer')
-          .lte('created_at', DateTime.now().toIso8601String());
-      // ← Informe la liste qu'on a lu les messages
+          .eq('read', false);
+
       widget.onMessagesRead?.call();
     } catch (e) {
       debugPrint("Erreur marquage comme lu: $e");
@@ -158,30 +156,22 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              "Tel: ${widget.consumerPhone}",
+              "Tél: ${widget.consumerPhone}",
               style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
-            // if (widget.product.productName.isNotEmpty)
-            //   Text(
-            //     widget.product.productName,
-            //     style: const TextStyle(fontSize: 12, color: Colors.white60),
-            //     overflow: TextOverflow.ellipsis,
-            //   ),
           ],
         ),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        elevation: 2,
       ),
       body: _messages.isEmpty
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 70, color: Colors.grey),
+                  Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text("Aucun message",
-                      style: TextStyle(fontSize: 16, color: Colors.grey)),
+                  Text("Aucun message", style: TextStyle(fontSize: 18)),
                   Text("Commencez la conversation !",
                       style: TextStyle(color: Colors.grey)),
                 ],

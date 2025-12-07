@@ -1,7 +1,8 @@
 // presentation/pages/consumer/consumer_home_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:legumes_app/core/services/local_storage_service.dart';
+import 'package:legumes_app/core/services/consumer_local_service.dart';
+import 'package:legumes_app/core/services/unread_messages_service.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:legumes_app/data/services/product_service.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
@@ -30,164 +31,60 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
   }
 
   void _openChat(Product product) async {
-    String? consumerId = await LocalStorageService.getConsumerId();
+    String? consumerId = await ConsumerLocalService.getConsumerId();
 
-    // Si on n'a jamais créé de consommateur → on le crée
-    if (consumerId == null) {
-      final nameCtrl = TextEditingController();
-      final phoneCtrl = TextEditingController();
-
-      final result = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Commencer le chat"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Entrez vos coordonnées pour discuter"),
-              const SizedBox(height: 16),
-              TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: "Nom")),
-              TextField(
-                  controller: phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: "Téléphone")),
-            ],
+    // Si on a déjà les infos → on ouvre direct le chat
+    if (consumerId != null) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConsumerChatScreen(
+            product: product,
+            consumerId: consumerId!,
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Annuler")),
-            ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                  Navigator.pop(ctx, "ok");
-                }
-              },
-              child: const Text("Démarrer"),
-            ),
-          ],
         ),
       );
-
-      if (result != "ok") return;
-
-      try {
-        final consumerRes = await Supabase.instance.client
-            .from('consumers')
-            .insert({
-              'name': nameCtrl.text.trim(),
-              'phone': phoneCtrl.text.trim(),
-            })
-            .select()
-            .single();
-
-        consumerId = consumerRes['id'].toString();
-        await LocalStorageService.saveConsumerId(consumerId); // ON SAUVEGARDE !
-      } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Erreur : $e")));
-        return;
-      }
+      return;
     }
 
-    // Maintenant on ouvre le chat → même après fermeture de l’app
-    if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConsumerChatScreen(
-          product: product,
-          consumerId: consumerId!,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showOrderDialog(Product product) async {
-    // ... ton code existant (je le garde identique)
+    // Sinon → on demande une seule fois
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-    final quantityCtrl = TextEditingController();
 
     final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Commander en quelques secondes",
-            textAlign: TextAlign.center),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundImage: product.imageUrl != null
-                    ? NetworkImage(product.imageUrl!)
-                    : null,
-                child: product.imageUrl == null
-                    ? const Icon(Icons.shopping_basket, size: 30)
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              Text(product.name,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("${product.price.toStringAsFixed(0)} MRU/kg",
-                  style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold)),
-              const Divider(height: 32),
-              const Text("Vos coordonnées (une seule fois)"),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                      labelText: "Nom complet",
-                      prefixIcon: Icon(Icons.person))),
-              TextField(
-                  controller: phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                      labelText: "Téléphone", prefixIcon: Icon(Icons.phone))),
-              TextField(
-                  controller: locationCtrl,
-                  decoration: const InputDecoration(
-                      labelText: "Quartier / Adresse",
-                      prefixIcon: Icon(Icons.location_on))),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: quantityCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: "Quantité (kg)",
-                      prefixIcon: Icon(Icons.scale))),
-            ],
-          ),
+        title: const Text("Bienvenue ! Entrez vos coordonnées"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                "Ces informations ne seront demandées qu'une seule fois"),
+            const SizedBox(height: 16),
+            TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: "Nom")),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: "Téléphone"),
+            ),
+          ],
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text("Annuler")),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                padding: const EdgeInsets.symmetric(horizontal: 24)),
+          ElevatedButton(
             onPressed: () {
               if (nameCtrl.text.trim().isNotEmpty &&
-                  phoneCtrl.text.trim().length >= 8 &&
-                  locationCtrl.text.trim().isNotEmpty &&
-                  quantityCtrl.text.trim().isNotEmpty) {
+                  phoneCtrl.text.trim().isNotEmpty) {
                 Navigator.pop(ctx, "ok");
               }
             },
-            icon: const Icon(Icons.send),
-            label: const Text("Envoyer"),
+            child: const Text("Continuer"),
           ),
         ],
       ),
@@ -201,38 +98,235 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
           .insert({
             'name': nameCtrl.text.trim(),
             'phone': phoneCtrl.text.trim(),
-            'location': locationCtrl.text.trim(),
           })
           .select()
           .single();
 
+      consumerId = consumerRes['id'].toString();
+
+      // SAUVEGARDE EN LOCAL POUR NE PLUS JAMAIS DEMANDER
+      await ConsumerLocalService.saveConsumerInfo(
+        name: nameCtrl.text.trim(),
+        phone: phoneCtrl.text.trim(),
+        consumerId: consumerId,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConsumerChatScreen(
+            product: product,
+            consumerId: consumerId!,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur : $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _showOrderDialog(Product product) async {
+    // 1. On essaie de récupérer les infos déjà sauvegardées
+    final localInfo = await ConsumerLocalService.getConsumerInfo();
+    String? consumerId = await ConsumerLocalService.getConsumerId();
+
+    final nameCtrl = TextEditingController(text: localInfo?['name'] ?? '');
+    final phoneCtrl = TextEditingController(text: localInfo?['phone'] ?? '');
+    final locationCtrl = TextEditingController();
+    final quantityCtrl = TextEditingController();
+
+    // Si on n'a PAS encore les infos → on force le dialog complet (première fois)
+    if (localInfo == null || consumerId == null) {
+      final result = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("Commander en quelques secondes",
+              textAlign: TextAlign.center),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundImage: product.imageUrl != null
+                      ? NetworkImage(product.imageUrl!)
+                      : null,
+                  child: product.imageUrl == null
+                      ? const Icon(Icons.shopping_basket, size: 30)
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                Text(product.name,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("${product.price.toStringAsFixed(0)} MRU/kg",
+                    style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold)),
+                const Divider(height: 32),
+                const Text("Vos coordonnées (une seule fois)",
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                        labelText: "Nom complet",
+                        prefixIcon: Icon(Icons.person))),
+                TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                        labelText: "Téléphone", prefixIcon: Icon(Icons.phone))),
+                TextField(
+                    controller: locationCtrl,
+                    decoration: const InputDecoration(
+                        labelText: "Quartier / Adresse",
+                        prefixIcon: Icon(Icons.location_on))),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: quantityCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: "Quantité (kg)",
+                        prefixIcon: Icon(Icons.scale))),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Annuler")),
+            ElevatedButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isNotEmpty &&
+                    phoneCtrl.text.trim().isNotEmpty &&
+                    locationCtrl.text.trim().isNotEmpty &&
+                    quantityCtrl.text.trim().isNotEmpty) {
+                  Navigator.pop(ctx, "ok");
+                }
+              },
+              child: const Text("Commander"),
+            ),
+          ],
+        ),
+      );
+
+      if (result != "ok") return;
+
+      // Créer le consommateur dans Supabase + sauvegarde locale
+      try {
+        final consumerRes = await Supabase.instance.client
+            .from('consumers')
+            .insert({
+              'name': nameCtrl.text.trim(),
+              'phone': phoneCtrl.text.trim(),
+            })
+            .select()
+            .single();
+
+        consumerId = consumerRes['id'].toString();
+
+        // SAUVEGARDE EN LOCAL → plus jamais demandé !
+        await ConsumerLocalService.saveConsumerInfo(
+          name: nameCtrl.text.trim(),
+          phone: phoneCtrl.text.trim(),
+          consumerId: consumerId,
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Erreur création consommateur : $e")));
+        }
+        return;
+      }
+    } else {
+      // CAS 2 : Infos déjà sauvegardées → dialog rapide (seulement quantité + adresse)
+      final quickResult = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text("Commander ${product.name}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Connecté comme : ${localInfo['name']}"),
+              Text("Téléphone : ${localInfo['phone']}"),
+              const Divider(),
+              TextField(
+                controller: quantityCtrl,
+                keyboardType: TextInputType.number,
+                decoration:
+                    const InputDecoration(labelText: "Quantité désirée (kg)"),
+                autofocus: true,
+              ),
+              TextField(
+                controller: locationCtrl,
+                decoration:
+                    const InputDecoration(labelText: "Adresse de livraison"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Annuler")),
+            ElevatedButton(
+              onPressed: () {
+                if (quantityCtrl.text.trim().isNotEmpty &&
+                    locationCtrl.text.trim().isNotEmpty) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+              child: const Text("Envoyer la demande"),
+            ),
+          ],
+        ),
+      );
+
+      if (quickResult != true) return;
+    }
+
+    // ENVOI DE LA COMMANDE (les deux cas arrivent ici)
+    try {
       await Supabase.instance.client.from('product_requests').insert({
         'product_id': product.id,
         'product_name': product.name,
-        'price_at_request': product.price,
-        'consumer_id': consumerRes['id'],
-        'quantity': double.tryParse(quantityCtrl.text) ?? 1.0,
-        'customer_location': locationCtrl.text.trim(),
         'vendor_id': product.vendorId,
+        'consumer_id': consumerId,
+        'quantity': double.tryParse(quantityCtrl.text) ?? 1,
+        'price_at_request': product.price,
+        // 'customer_name': nameCtrl.text.trim(),
+        // 'customer_phone': phoneCtrl.text.trim(),
         'vendor_shop_name': product.vendorShopName ?? 'Boutique',
+        'customer_location': locationCtrl.text.trim(),
         'status': 'pending',
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-                Text("Demande envoyée ! Le vendeur vous appellera très vite"),
+            content: Text(
+                "Demande envoyée avec succès ! Le vendeur vous répondra bientôt"),
             backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur : $e"), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text("Échec de l'envoi : $e"),
+              backgroundColor: Colors.red),
         );
+        print("error : $e");
       }
     }
   }
@@ -342,22 +436,61 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _openChat(p),
-                                    icon: const Icon(Icons.chat_bubble_outline,
-                                        size: 16),
-                                    label: const Text("Chat",
-                                        style: TextStyle(fontSize: 11)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
+                                Stack(
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () => _openChat(p),
+                                      icon: const Icon(
+                                          Icons.chat_bubble_outline,
+                                          size: 16),
+                                      label: const Text("Chat",
+                                          style: TextStyle(fontSize: 11)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12)),
+                                      ),
                                     ),
-                                  ),
+                                    // Badge pour le consommateur
+                                    FutureBuilder<int>(
+                                      future:
+                                          ConsumerLocalService.getConsumerId()
+                                              .then((id) async {
+                                        if (id == null) return 0;
+                                        return await UnreadMessagesService
+                                            .getUnreadCountForConsumer(id);
+                                      }),
+                                      builder: (context, snapshot) {
+                                        final count = snapshot.data ?? 0;
+                                        if (count == 0) return const SizedBox();
+                                        return Positioned(
+                                          right: 6,
+                                          top: 6,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            constraints: const BoxConstraints(
+                                                minWidth: 18, minHeight: 18),
+                                            child: Text(
+                                              count > 99
+                                                  ? "99+"
+                                                  : count.toString(),
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -403,6 +536,7 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
       id: widget.product.vendorId,
       firstName: widget.product.vendorShopName ?? "Vendeur",
     );
+    _markVendorMessagesAsRead();
     _loadMessages();
     _listenToRealtime();
   }
@@ -475,6 +609,21 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
               content: Text("Échec de l'envoi"), backgroundColor: Colors.red),
         );
       }
+    }
+  }
+
+  Future<void> _markVendorMessagesAsRead() async {
+    try {
+      await Supabase.instance.client
+          .from('messages')
+          .update({'read': true})
+          .eq('consumer_id', widget.consumerId)
+          .eq('vendor_id', widget.product.vendorId)
+          .eq('sender_type', 'vendor')
+          .eq('read',
+              false); // seulement les non lus (mais même si déjà lus, ça ne change rien)
+    } catch (e) {
+      debugPrint("Erreur marquage messages comme lus (consommateur): $e");
     }
   }
 
