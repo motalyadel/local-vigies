@@ -31,6 +31,7 @@ class VendorService extends BaseService {
       final response = await clientSpb.from('users').select('''
             id, name,
             vendors(shop_name, phone, location, photo_url, created_at),
+            consumers(*)
             roles:user_roles(*, app_role(*))
           ''').eq('id', user.id).single();
 
@@ -221,12 +222,9 @@ class VendorService extends BaseService {
 
       print('Envoi vers /user : $body');
 
-      final response = await apiFetcher.post(
-        '/user',
-        body: body,
-        file: photoUrl
-        // Pas de fichier ici car photo_url est déjà uploadé avant
-      );
+      final response = await apiFetcher.post('/user', body: body, file: photoUrl
+          // Pas de fichier ici car photo_url est déjà uploadé avant
+          );
 
       print('Réponse /user : ${response.status} - ${response.data}');
 

@@ -68,7 +68,6 @@ app.post(
     const token = headers.authorization?.replace("Bearer ", "");
     const { data: userInfo, error: userInfoError } =
       await supabase.auth.getUser(token);
-
     if (userInfoError || !userInfo?.user) {
       set.status = 401;
       return { success: false, error: "Unauthorized" };
@@ -77,7 +76,6 @@ app.post(
     const currentUser = userInfo.user;
     const currentRoles = currentUser.user_metadata?.roles || [];
     const isAdmin = currentRoles.includes("admin");
-
     if (!isAdmin) {
       set.status = 403;
       return {
@@ -88,15 +86,19 @@ app.post(
 
     try {
       // 1️⃣ Créer l'utilisateur dans Supabase Auth
+      const attributes: { [key: string]: any } = {};
+      if (roles[0] === "consumer") {
+        attributes.phone = phone;
+      } else {
+        attributes.email = email;
+        attributes.password = password;
+      }
+
       const { data: createdUser, error } = await supabase.auth.admin.createUser(
         {
-          email,
-          password,
+          ...attributes,
+          user_metadata: { name, roles },
           email_confirm: true,
-          user_metadata: {
-            name,
-            roles,
-          },
         }
       );
 
@@ -115,11 +117,10 @@ app.post(
       const { error: userInsertError } = await supabase.from("users").insert([
         {
           id: userId,
-          email,
+          email: email || null,
           name,
         },
       ]);
-
       if (userInsertError) {
         set.status = 500;
         return {
@@ -130,8 +131,7 @@ app.post(
       }
 
       // 3️⃣ Insérer dans la table du rôle spécifique
-      const role = roles[0]; // un seul rôle par utilisateur
-
+      const role = roles[0];
       if (role === "admin") {
         await supabase.from("admin").insert([{ id: userId }]);
       } else if (role === "vendor") {
@@ -144,6 +144,16 @@ app.post(
             photo_url,
           },
         ]);
+      } else if (role === "consumer") {
+        await supabase.from("consumers").insert([
+          {
+            id: userId,
+            name,
+            phone,
+            location,
+            created_at: new Date().toISOString(),
+          },
+        ]);
       }
 
       // 4️⃣ Lier le rôle à l’utilisateur (dans user_roles)
@@ -153,7 +163,6 @@ app.post(
           role_id: role,
         },
       ]);
-
       if (roleError) {
         set.status = 500;
         return {
@@ -166,7 +175,7 @@ app.post(
       return {
         success: true,
         message: `User created successfully as ${role}`,
-        user: { id: userId, email, name, role },
+        user: { id: userId, name, role },
       };
     } catch (err) {
       console.error("Error creating user:", err);
@@ -180,17 +189,114 @@ app.post(
   },
   {
     body: t.Object({
-      email: t.String(),
-      password: t.String(),
+      email: t.Optional(t.String()), // Maintenant optionnel
+      password: t.Optional(t.String()), // Maintenant optionnel
       name: t.String(),
-      roles: t.Array(t.String()), // ["admin"] or ["vendor"]
+      roles: t.Array(t.String()), // ["consumer"] or ["vendor"] or ["admin"]
       shop_name: t.Optional(t.String()), // Vendor only
-      phone: t.Optional(t.String()),
-      location: t.Optional(t.String()),
-      photo_url: t.Optional(t.String()),
+      phone: t.Optional(t.String()), // Consumer/vendor
+      location: t.Optional(t.String()), // Consumer/vendor
+      photo_url: t.Optional(t.String()), // Vendor
     }),
   }
 );
+
+// Ajoute cet endpoint dans ton serveur (Hono, Express, etc.)
+
+app.post(
+  "/consumer",
+  async ({ body, set }) => {
+    const { name, phone, location } = body;
+
+    try {
+      // 1. Créer l'utilisateur dans auth.users (avec phone)
+      const { data: authUser, error: authError } =
+        await supabase.auth.admin.createUser({
+          phone,
+          user_metadata: {
+            name,
+            role: "consumer",
+            location,
+          },
+          phone_confirm: true, // Si tu veux que le numéro soit confirmé automatiquement
+        });
+
+      if (authError) {
+        console.error("Erreur création auth.users:", authError);
+        set.status = 400;
+        return { success: false, error: authError.message };
+      }
+
+      const userId = authUser.user.id;
+
+      // 2. Insérer dans public.users
+      const { error: publicError } = await supabase.from("users").insert({
+        id: userId,
+        name,
+        email: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      if (publicError) {
+        console.error("Erreur public.users:", publicError);
+        set.status = 500;
+        return { success: false, error: "Échec insertion public.users" };
+      }
+
+      // 3. Insérer dans consumers
+      const { error: consumerError } = await supabase.from("consumers").insert({
+        id: userId,
+        name,
+        phone,
+        location,
+        created_at: new Date().toISOString(),
+      });
+
+      if (consumerError) {
+        console.error("Erreur consumers:", consumerError);
+        set.status = 500;
+        return { success: false, error: "Échec insertion consumers" };
+      }
+
+      // 4. Insérer le rôle dans user_roles
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        id: crypto.randomUUID(), // ou gen_random_uuid() si tu as l'extension
+        user_id: userId,
+        role_id: "consumer",
+      });
+
+      if (roleError) {
+        console.error("Erreur user_roles:", roleError);
+        set.status = 500;
+        return { success: false, error: "Échec insertion rôle" };
+      }
+
+      return {
+        success: true,
+        message: "Consumer créé avec succès",
+        user: {
+          id: userId,
+          name,
+          phone,
+          location,
+        },
+      };
+    } catch (err) {
+      console.error("Erreur inattendue:", err);
+      set.status = 500;
+      return { success: false, error: "Erreur serveur" };
+    }
+  },
+  {
+    body: t.Object({
+      name: t.String(),
+      phone: t.Optional(t.String()), // Consumer/vendor
+      location: t.Optional(t.String()), // Consumer/vendor
+    }),
+  }
+);
+
 app.get("/check-email", async ({ query, set }) => {
   const { email } = query;
   if (!email || typeof email !== "string") {

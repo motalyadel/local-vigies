@@ -50,24 +50,24 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
       final response = await Supabase.instance.client
           .from('messages')
           .select()
-          .eq('vendor_id', _vendor.id)
+          .eq('vendor_id', _vendor.id) // .eq() marche pour select()
           .eq('consumer_id', widget.consumerId)
           .order('created_at', ascending: true);
 
       final List<types.Message> loaded = [];
 
-      for (var msg in response) {
-        final text = (msg['text'] as String?)?.trim() ?? '[Message vide]';
-        final createdAt = DateTime.tryParse(msg['created_at'] as String? ?? '')
+      for (var messages in response) {
+        final text = (messages['text'] as String?)?.trim() ?? '[Message vide]';
+        final createdAt = DateTime.tryParse(messages['created_at'] as String? ?? '')
                 ?.millisecondsSinceEpoch ??
             DateTime.now().millisecondsSinceEpoch;
 
-        final isFromVendor = msg['sender_type'] == 'vendor';
+        final isFromVendor = messages['sender_type'] == 'vendor';
 
         loaded.add(types.TextMessage(
           author: isFromVendor ? _vendor : _consumer,
           createdAt: createdAt,
-          id: msg['id'].toString(),
+          id: messages['id'].toString(),
           text: text,
         ));
       }
@@ -86,12 +86,45 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
     Supabase.instance.client
         .from('messages')
         .stream(primaryKey: ['id'])
-        .eq('consumer_id', widget.consumerId)
-        // .eq('vendor_id', _vendor.id)
-        .listen((_) {
-          _loadMessages();
-          _markMessagesAsRead(); // Re-marque au cas où
+        .order('created_at', ascending: true)
+        .listen((List<Map<String, dynamic>> data) {
+          // Filtre en mémoire : seulement les messages de cette conversation
+          final filteredData = data
+              .where((messages) =>
+                  messages['vendor_id'] == _vendor.id &&
+                  messages['consumer_id'] == widget.consumerId)
+              .toList();
+
+          if (mounted) {
+            _loadMessagesFromData(filteredData); // Nouvelle fonction
+            _markMessagesAsRead();
+          }
         });
+  }
+
+// Nouvelle fonction pour charger depuis data filtré
+  void _loadMessagesFromData(List<Map<String, dynamic>> filteredData) {
+    final List<types.Message> loaded = [];
+
+    for (var messages in filteredData) {
+      final text = (messages['text'] as String?)?.trim() ?? '[Message vide]';
+      final createdAt = DateTime.tryParse(messages['created_at'] as String? ?? '')
+              ?.millisecondsSinceEpoch ??
+          DateTime.now().millisecondsSinceEpoch;
+
+      final isFromVendor = messages['sender_type'] == 'vendor';
+
+      loaded.add(types.TextMessage(
+        author: isFromVendor ? _vendor : _consumer,
+        createdAt: createdAt,
+        id: messages['id'].toString(),
+        text: text,
+      ));
+    }
+
+    setState(() {
+      _messages = loaded.reversed.toList();
+    });
   }
 
   void _handleSendPressed(types.PartialText message) async {
