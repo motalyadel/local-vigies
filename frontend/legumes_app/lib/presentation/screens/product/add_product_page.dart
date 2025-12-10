@@ -42,28 +42,28 @@ class _AddProductPageState extends State<AddProductPage> {
     final controller =
         Provider.of<ProductManagementController>(context, listen: false);
 
-    String? imageUrl;
+    // String? imageUrl;
 
-    // Upload photo si sélectionnée
-    if (_photo != null) {
-      imageUrl = await ProductService().uploadImage(_photo!);
-      if (imageUrl == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload image')),
-          );
-        }
-        setState(() => _loading = false);
-        return;
-      }
-    }
+    // // Upload photo si sélectionnée
+    // if (_photo != null) {
+    //   imageUrl = await ProductService().uploadImage(_photo!);
+    //   if (imageUrl == null) {
+    //     if (mounted) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(content: Text('Failed to upload image')),
+    //       );
+    //     }
+    //     setState(() => _loading = false);
+    //     return;
+    //   }
+    // }
 
     try {
       await controller.createProduct(
         name: _nameCtrl.text.trim(),
         price: double.tryParse(_priceCtrl.text) ?? 0.0,
         quantity: int.tryParse(_quantityCtrl.text) ?? 0,
-        // imageUrl: imageUrl,
+        imageFile: _photo, // ← Passe le XFile ici
         date: _selectedDate,
       );
 

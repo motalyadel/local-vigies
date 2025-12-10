@@ -24,7 +24,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late final TextEditingController _priceCtrl;
   late final TextEditingController _quantityCtrl;
 
-  cross_file.XFile? _photo;
+  cross_file.XFile? imageFile;
   late DateTime _selectedDate;
   bool _loading = false;
 
@@ -43,7 +43,7 @@ class _EditProductPageState extends State<EditProductPage> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => _photo = picked);
+      setState(() => imageFile = picked);
     }
   }
 
@@ -55,21 +55,21 @@ class _EditProductPageState extends State<EditProductPage> {
     final controller =
         Provider.of<ProductManagementController>(context, listen: false);
 
-    String? imageUrl = widget.product.imageUrl;
+    // String? imageUrl = widget.product.imageUrl;
 
-    // Upload nouvelle photo si sélectionnée
-    if (_photo != null) {
-      imageUrl = await ProductService().uploadImage(_photo!);
-      if (imageUrl == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload image')),
-          );
-        }
-        setState(() => _loading = false);
-        return;
-      }
-    }
+    // // Upload nouvelle photo si sélectionnée
+    // if (imageFile != null) {
+    //   imageUrl = await ProductService().uploadImage(imageFile!);
+    //   if (imageUrl == null) {
+    //     if (mounted) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(content: Text('Failed to upload image')),
+    //       );
+    //     }
+    //     setState(() => _loading = false);
+    //     return;
+    //   }
+    // }
 
     try {
       await controller.updateProduct(
@@ -77,7 +77,7 @@ class _EditProductPageState extends State<EditProductPage> {
         name: _nameCtrl.text.trim(),
         price: double.tryParse(_priceCtrl.text) ?? widget.product.price,
         quantity: int.tryParse(_quantityCtrl.text) ?? widget.product.quantity,
-        imageUrl: imageUrl,
+        imageFile: imageFile,
         date: _selectedDate,
       );
 
@@ -115,8 +115,8 @@ class _EditProductPageState extends State<EditProductPage> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: _photo != null
-                      ? Image.file(File(_photo!.path),
+                  child: imageFile != null
+                      ? Image.file(File(imageFile!.path),
                           width: 120, height: 120, fit: BoxFit.cover)
                       : widget.product.imageUrl != null
                           ? Image.network(widget.product.imageUrl!,
@@ -136,8 +136,8 @@ class _EditProductPageState extends State<EditProductPage> {
                 label: const Text('Change Photo'),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
               ),
-              if (_photo != null)
-                Text('New photo selected: ${_photo!.name}',
+              if (imageFile != null)
+                Text('New photo selected: ${imageFile!.name}',
                     style: const TextStyle(color: Colors.green)),
               const SizedBox(height: 16),
 

@@ -1,6 +1,7 @@
 // presentation/controllers/product_management_controller.dart
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:legumes_app/data/services/product_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,7 +49,7 @@ class ProductManagementController extends ChangeNotifier {
     required String name,
     required double price,
     required int quantity,
-    // String? imageUrl,
+    XFile? imageFile, // ← NOUVEAU : on passe le fichier directement
     DateTime? date,
   }) async {
     loading = true;
@@ -56,21 +57,23 @@ class ProductManagementController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('debuit creation de produit ');
       final success = await _service.createProduct(
         name: name,
         price: price,
         quantity: quantity,
-        // imageUrl: imageUrl,
+        imageFile: imageFile, // ← On passe le XFile ici
         date: date,
       );
 
       if (success) {
         await loadProducts(); // Recharge la liste
       } else {
-        throw Exception('Failed to create product');
+        throw Exception('Échec de la création du produit');
       }
     } catch (e) {
-      error = 'Failed to create product: $e';
+      error = 'Impossible de créer le produit : $e';
+      print('Erreur création produit : $e');
     } finally {
       loading = false;
       notifyListeners();
@@ -83,7 +86,7 @@ class ProductManagementController extends ChangeNotifier {
     String? name,
     double? price,
     int? quantity,
-    String? imageUrl,
+    XFile? imageFile, // ← Permet de changer la photo
     DateTime? date,
   }) async {
     loading = true;
@@ -91,6 +94,14 @@ class ProductManagementController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      String? imageUrl;
+      if (imageFile != null) {
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
+        imageUrl = await ProductService().uploadImage(imageFile, fileName);
+        if (imageUrl == null) throw Exception("Échec de l'upload de l'image");
+      }
+
       final Map<String, dynamic> updates = {};
       if (name != null) updates['name'] = name;
       if (price != null) updates['price'] = price.toString();
@@ -103,10 +114,10 @@ class ProductManagementController extends ChangeNotifier {
       if (success) {
         await loadProducts();
       } else {
-        throw Exception('Failed to update product');
+        throw Exception('Échec de la mise à jour');
       }
     } catch (e) {
-      error = 'Failed to update product: $e';
+      error = 'Erreur mise à jour : $e';
     } finally {
       loading = false;
       notifyListeners();
@@ -114,43 +125,43 @@ class ProductManagementController extends ChangeNotifier {
   }
 
   Future<bool> updatePriceDirectly(String productId, double newPrice) async {
-  loading = true;
-  notifyListeners();
+    loading = true;
+    notifyListeners();
 
-  try {
-    final response = await Supabase.instance.client
-        .from('products')
-        .update({
-          'price': newPrice,
-          'updated_at': DateTime.now().toIso8601String(),
-          'date': DateTime.now().toIso8601String().split('T')[0], // date du jour
-        })
-        .eq('id', productId)
-        .select(); // important pour avoir la réponse
+    try {
+      final response = await Supabase.instance.client
+          .from('products')
+          .update({
+            'price': newPrice,
+            'updated_at': DateTime.now().toIso8601String(),
+            'date':
+                DateTime.now().toIso8601String().split('T')[0], // date du jour
+          })
+          .eq('id', productId)
+          .select(); // important pour avoir la réponse
 
-    if (response.isEmpty) {
-      error = "Produit non trouvé ou vous n'êtes pas autorisé";
+      if (response.isEmpty) {
+        error = "Produit non trouvé ou vous n'êtes pas autorisé";
+        return false;
+      }
+
+      // Mise à jour locale
+      final index = products.indexWhere((p) => p.id == productId);
+      if (index != -1) {
+        products[index] = products[index].copyWith(price: newPrice);
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      error = "Erreur : $e";
+      print("Erreur update price: $e");
       return false;
-    }
-
-    // Mise à jour locale
-    final index = products.indexWhere((p) => p.id == productId);
-    if (index != -1) {
-      products[index] = products[index].copyWith(price: newPrice);
+    } finally {
+      loading = false;
       notifyListeners();
     }
-
-    return true;
-  } 
-  catch (e) {
-    error = "Erreur : $e";
-    print("Erreur update price: $e");
-    return false;
-  } finally {
-    loading = false;
-    notifyListeners();
   }
-}
 
   // Supprimer un produit
   Future<void> deleteProduct(String id) async {

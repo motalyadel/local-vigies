@@ -190,7 +190,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
                       borderRadius: BorderRadius.circular(8),
                       child: product.imageUrl != null
                           ? Image.network(product.imageUrl!,
-                              width: 70, height: 70, fit: BoxFit.cover)
+                              width: 64, height: 64, fit: BoxFit.cover)
                           : Container(
                               color: Colors.grey[300],
                               child: const Icon(Icons.image, size: 40)),

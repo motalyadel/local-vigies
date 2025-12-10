@@ -593,7 +593,7 @@ app.post(
   async ({ body, headers, set }) => {
     const { name, price, quantity, image_url, date } = body;
 
-    // Authentification
+    // Auth
     const token = headers.authorization?.replace("Bearer ", "");
     const {
       data: { user },
@@ -622,7 +622,7 @@ app.post(
         name,
         price: parseFloat(price),
         quantity: parseInt(quantity),
-        image_url: image_url || null,
+        image_url: image_url || null, // On accepte juste l’URL (string)
         date: date || new Date().toISOString().split("T")[0],
       })
       .select()
@@ -638,9 +638,9 @@ app.post(
   {
     body: t.Object({
       name: t.String(),
-      price: t.String(), // string car on parse après
+      price: t.String(),
       quantity: t.String(),
-      image_url: t.Optional(t.String()),
+      image_url: t.Optional(t.String()), // URL publique
       date: t.Optional(t.String()),
     }),
   }
