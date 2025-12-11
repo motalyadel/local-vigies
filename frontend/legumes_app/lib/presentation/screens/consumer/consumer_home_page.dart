@@ -979,8 +979,10 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
     }
   }
 
-  Future<void> _refresh() async {
-    setState(() => _productsFuture = ProductService().getAllProducts());
+  void _refresh() {
+    setState(() {
+      _productsFuture = ProductService().getAllProducts();
+    });
   }
 
   @override

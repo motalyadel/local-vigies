@@ -30,8 +30,12 @@ class ProductService {
       return [];
     }
 
+    // Filtre les produits supprimés
     final List<dynamic> list = res.data['products'];
-    return list.map((e) => Product.fromMap(e as Map<String, dynamic>)).toList();
+    return list
+        .where((p) => p['active'] != false) // ou p['is_deleted'] != true
+        .map((e) => Product.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ==================== TOUS LES PRODUITS DU MARCHÉ ====================
@@ -43,8 +47,12 @@ class ProductService {
       return [];
     }
 
+    // Filtre les produits supprimés
     final List<dynamic> list = res.data['products'];
-    return list.map((e) => Product.fromMap(e as Map<String, dynamic>)).toList();
+    return list
+        .where((p) => p['active'] != false) // ou p['is_deleted'] != true
+        .map((e) => Product.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ==================== CRÉATION DE PRODUIT ====================
@@ -127,7 +135,13 @@ class ProductService {
   // ==================== SUPPRESSION ====================
   Future<bool> deleteProduct(String id) async {
     final res = await _fetcher.delete('product/delete/$id');
-    return res.isSuccess && res.data['success'] == true;
+
+    if (!res.isSuccess) {
+      print('Suppression échouée → ${res.status} ${res.error}');
+      return false;
+    }
+
+    return res.data['success'] == true;
   }
 
   // Dans data/services/product_service.dart

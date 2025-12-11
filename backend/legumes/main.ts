@@ -739,8 +739,8 @@ app.put("/product/update/:id", async ({ params, body, headers, set }) => {
 // === 4. Supprimer un produit (seul le propriétaire) ===
 app.delete("/product/delete/:id", async ({ params, headers, set }) => {
   const { id } = params;
-
   const token = headers.authorization?.replace("Bearer ", "");
+
   const {
     data: { user },
     error: authError,
@@ -750,6 +750,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
     return { success: false, error: "Unauthorized" };
   }
 
+  // Vérifie que c'est bien son produit (ou admin)
   const { data: product, error: fetchError } = await supabase
     .from("products")
     .select("vendor_id")
@@ -766,20 +767,59 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
     !user.user_metadata?.roles?.includes("admin")
   ) {
     set.status = 403;
+    return { success: false, error: "Accès refusé" };
+  }
+
+  // ÉTAPE CLÉ : On vérifie s'il y a des messages liés
+  const { count, error: countError } = await supabase
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("product_id", id);
+
+  if (countError) {
+    set.status = 500;
+    return { success: false, error: "Erreur serveur" };
+  }
+
+  // S'IL Y A DES MESSAGES → SOFT DELETE (on masque)
+  if (count && count > 0) {
+    const { error } = await supabase
+      .from("products")
+      .update({
+        active: false,
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      set.status = 400;
+      return { success: false, error: error.message };
+    }
+
     return {
-      success: false,
-      error: "Vous ne pouvez supprimer que vos produits",
+      success: true,
+      message: "Produit archivé (il a des messages)",
+      soft_deleted: true,
     };
   }
 
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  // S'IL N'Y A PAS DE MESSAGES → SUPPRESSION TOTALE
+  const { error: deleteError } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", id);
 
-  if (error) {
+  if (deleteError) {
     set.status = 400;
-    return { success: false, error: error.message };
+    return { success: false, error: deleteError.message };
   }
 
-  return { success: true, message: "Produit supprimé avec succès" };
+  return {
+    success: true,
+    message: "Produit supprimé définitivement",
+    soft_deleted: false,
+  };
 });
 
 // === 5. Lister tous les produits (public ou admin) ===
