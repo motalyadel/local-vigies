@@ -3,11 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:cross_file/cross_file.dart' as cross_file;
-
-import 'package:legumes_app/data/services/product_service.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -42,41 +41,32 @@ class _AddProductPageState extends State<AddProductPage> {
     final controller =
         Provider.of<ProductManagementController>(context, listen: false);
 
-    // String? imageUrl;
-
-    // // Upload photo si sélectionnée
-    // if (_photo != null) {
-    //   imageUrl = await ProductService().uploadImage(_photo!);
-    //   if (imageUrl == null) {
-    //     if (mounted) {
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         const SnackBar(content: Text('Failed to upload image')),
-    //       );
-    //     }
-    //     setState(() => _loading = false);
-    //     return;
-    //   }
-    // }
-
     try {
-      await controller.createProduct(
+      final success = await controller.createProduct(
         name: _nameCtrl.text.trim(),
         price: double.tryParse(_priceCtrl.text) ?? 0.0,
         quantity: int.tryParse(_quantityCtrl.text) ?? 0,
-        imageFile: _photo, // ← Passe le XFile ici
+        imageFile: _photo,
         date: _selectedDate,
       );
 
-      if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product created successfully!')),
-        );
-      }
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.productCreatedSuccess),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create product: $e')),
+          SnackBar(
+            content: Text(
+                "${AppLocalizations.of(context)!.productCreatedFailed}: $e"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -86,10 +76,13 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Product'),
+        title: Text(l10n.addProduct),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -97,43 +90,64 @@ class _AddProductPageState extends State<AddProductPage> {
           key: _formKey,
           child: Column(
             children: [
+              // Nom du produit
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
-                  prefixIcon: Icon(Icons.inventory_2),
+                decoration: InputDecoration(
+                  labelText: l10n.productName,
+                  prefixIcon: const Icon(Icons.inventory_2),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Prix
               TextFormField(
                 controller: _priceCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Price (MRU)',
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
                 keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: l10n.priceMRU,
+                  prefixIcon: const Icon(Icons.attach_money),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
                 validator: (v) {
-                  if (v!.trim().isEmpty) return 'Required';
-                  if (double.tryParse(v) == null) return 'Invalid price';
+                  if (v!.trim().isEmpty) return l10n.fieldRequired;
+                  if (double.tryParse(v) == null || double.parse(v) <= 0) {
+                    return l10n.invalidPrice;
+                  }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Quantité
               TextFormField(
                 controller: _quantityCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity (K)',
-                  prefixIcon: Icon(Icons.numbers),
-                ),
                 keyboardType: TextInputType.number,
-                validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                decoration: InputDecoration(
+                  labelText: l10n.quantityKg,
+                  prefixIcon: const Icon(Icons.scale),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) {
+                  if (v!.trim().isEmpty) return l10n.fieldRequired;
+                  if (int.tryParse(v) == null || int.parse(v) <= 0) {
+                    return l10n.invalidQuantity;
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
+
+              // Date
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(
-                    'Date: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}'),
+                title: Text(l10n.productDate(
+                    DateFormat('dd/MM/yyyy').format(_selectedDate))),
                 trailing: const Icon(Icons.edit_calendar),
                 onTap: () async {
                   final date = await showDatePicker(
@@ -142,36 +156,44 @@ class _AddProductPageState extends State<AddProductPage> {
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                   );
-                  if (date != null) {
-                    setState(() => _selectedDate = date);
-                  }
+                  if (date != null) setState(() => _selectedDate = date);
                 },
               ),
               const SizedBox(height: 16),
+
+              // Photo
               ElevatedButton.icon(
                 onPressed: _pickPhoto,
                 icon: const Icon(Icons.photo_camera),
-                label: const Text('Select Photo'),
+                label: Text(l10n.selectPhoto),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
               ),
               if (_photo != null) ...[
                 const SizedBox(height: 8),
-                Text('Selected: ${_photo!.name}',
-                    style: const TextStyle(color: Colors.green)),
+                Text(
+                  '${l10n.photoSelected}: ${_photo!.name}',
+                  style: const TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.w500),
+                ),
               ],
               const SizedBox(height: 24),
+
+              // Bouton Créer
               SizedBox(
                 width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     padding: const EdgeInsets.all(16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _loading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Create Product',
-                          style: TextStyle(fontSize: 16)),
+                      : Text(l10n.createProduct,
+                          style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ],

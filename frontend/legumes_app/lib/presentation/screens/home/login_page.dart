@@ -91,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
                         size: 80, color: AppColors.primary),
                     const SizedBox(height: 16),
                     Text(
-                      "Connexion au Marché Local 🥕",
+                      AppLocalizations.of(context)!.connexionAuMarche,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineSmall!.copyWith(
                         color: AppColors.textPrimary,
@@ -113,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       validator: (val) => val != null && val.contains('@')
                           ? null
-                          : "Entrez un email valide",
+                          : AppLocalizations.of(context)!.invalidEmail,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       validator: (val) => val != null && val.length >= 6
                           ? null
-                          : "Mot de passe trop court",
+                          : AppLocalizations.of(context)!.passwordTooShort,
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 16),
@@ -154,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text("Se connecter"),
+                              child: Text(AppLocalizations.of(context)!.login),
                             ),
                     ),
                     const SizedBox(height: 12),
@@ -162,9 +162,9 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () {
                         AppNavigator.pushReplacement('/signup');
                       },
-                      child: const Text(
-                        "Pas encore de compte ? S’inscrire",
-                        style: TextStyle(color: AppColors.secondary),
+                      child: Text(
+                        AppLocalizations.of(context)!.noAccount,
+                        style: const TextStyle(color: AppColors.secondary),
                       ),
                     ),
                     IconButton(

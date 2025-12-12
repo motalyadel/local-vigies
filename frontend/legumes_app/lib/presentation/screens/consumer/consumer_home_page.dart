@@ -698,6 +698,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:legumes_app/core/network/api_fetcher.dart';
 import 'package:legumes_app/core/services/consumer_local_service.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
+import 'package:legumes_app/presentation/providers/local_provider.dart';
+import 'package:legumes_app/presentation/screens/home/login_page.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
@@ -747,7 +751,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
     await prefs.remove('consumer_id');
     setState(() => _consumerId = null);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profil réinitialisé pour test")),
+      SnackBar(content: Text(AppLocalizations.of(context)!.profileReset)),
     );
   }
 
@@ -775,8 +779,8 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
         setState(() => _consumerId = consumerId);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Profil créé avec succès !"),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.profileCreated),
             backgroundColor: Colors.green,
           ),
         );
@@ -787,7 +791,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Échec création: $e"),
+            content: Text(AppLocalizations.of(context)!.orderFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -796,6 +800,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
   }
 
   Future<void> _showConsumerForm(VoidCallback onComplete) async {
+    final l10n = AppLocalizations.of(context)!;
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final locationCtrl = TextEditingController();
@@ -804,27 +809,25 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text("Complétez votre profil"),
+        title: Text(l10n.completeProfile),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                  "Ces informations ne seront demandées qu'une seule fois"),
+              Text(l10n.profileInfoOnce),
               const SizedBox(height: 16),
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: "Nom complet"),
+                decoration: InputDecoration(labelText: l10n.fullName),
               ),
               TextField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: "Téléphone"),
+                decoration: InputDecoration(labelText: l10n.phone),
               ),
               TextField(
                 controller: locationCtrl,
-                decoration: const InputDecoration(
-                    labelText: "Quartier / Ville (optionnel)"),
+                decoration: InputDecoration(labelText: l10n.neighborhood),
               ),
             ],
           ),
@@ -832,7 +835,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Annuler")),
+              child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               if (nameCtrl.text.trim().isNotEmpty &&
@@ -840,7 +843,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                 Navigator.pop(ctx, true);
               }
             },
-            child: const Text("Créer mon profil"),
+            child: Text(l10n.createProfile),
           ),
         ],
       ),
@@ -875,6 +878,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
   }
 
   Future<void> _showOrderDialog(Product product) async {
+    final l10n = AppLocalizations.of(context)!;
     // Si le consumer n'est pas encore créé → on le force à remplir ses infos
     if (_consumerId == null) {
       await _showConsumerForm(() => _showOrderDialog(product));
@@ -887,25 +891,25 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Commander ${product.name}"),
+        title: Text(l10n.orderProduct(product.name)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Prix: ${product.price.toStringAsFixed(0)} MRU / kg"),
+            Text(l10n.pricePerKg(product.price.toStringAsFixed(0))),
             const SizedBox(height: 16),
             TextField(
               controller: quantityCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Quantité (kg)",
+              decoration: InputDecoration(
+                labelText: l10n.quantityKg,
                 hintText: "",
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: addressCtrl,
-              decoration: const InputDecoration(
-                labelText: "Adresse de livraison",
+              decoration: InputDecoration(
+                labelText: l10n.deliveryAddress,
                 hintText: "",
               ),
             ),
@@ -914,7 +918,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Annuler"),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -925,13 +929,11 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                 Navigator.pop(ctx, true);
               } else {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          "Veuillez remplir tous les champs correctement")),
+                  SnackBar(content: Text(l10n.fillFields)),
                 );
               }
             },
-            child: const Text("Commander"),
+            child: Text(l10n.order),
           ),
         ],
       ),
@@ -960,9 +962,8 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                "Demande envoyée avec succès ! Le vendeur vous répondra bientôt"),
+          SnackBar(
+            content: Text(l10n.orderSent),
             backgroundColor: Colors.green,
           ),
         );
@@ -971,7 +972,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text("Échec de l'envoi : $e"),
+              content: Text("${l10n.orderFailed}: $e"),
               backgroundColor: Colors.red),
         );
         print("error : $e");
@@ -987,18 +988,30 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Marché Local"),
+        title: Text(AppLocalizations.of(context)!.marketTitle),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.language, color: AppColors.secondary),
+            onPressed: () {
+              final current = localeProvider.locale.languageCode;
+              final newLocale =
+                  current == 'fr' ? const Locale('ar') : const Locale('fr');
+              localeProvider.changeLocale(newLocale);
+            },
+            tooltip: 'Changer la langue',
+          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
           TextButton.icon(
             onPressed: () => Navigator.of(context).pushNamed('/login'),
             icon: const Icon(Icons.login, color: Colors.white),
-            label: const Text('Se connecter',
-                style: TextStyle(color: Colors.white)),
+            label: Text(AppLocalizations.of(context)!.login,
+                style: const TextStyle(color: Colors.white)),
           ),
           // IconButton(
           //     icon: const Icon(Icons.delete),
@@ -1013,7 +1026,8 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
           }
           final products = snapshot.data ?? [];
           if (products.isEmpty) {
-            return const Center(child: Text("Aucun produit"));
+            return Center(
+                child: Text(AppLocalizations.of(context)!.noProducts));
           }
 
           return GridView.builder(
@@ -1072,8 +1086,9 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                     icon: const Icon(
                                         Icons.shopping_cart_outlined,
                                         size: 14),
-                                    label: const Text("Commander",
-                                        style: TextStyle(fontSize: 9)),
+                                    label: Text(
+                                        AppLocalizations.of(context)!.order,
+                                        style: const TextStyle(fontSize: 9)),
                                     style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.orange,
                                         padding: const EdgeInsets.symmetric(
@@ -1089,8 +1104,10 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                         icon: const Icon(
                                             Icons.chat_bubble_outline,
                                             size: 14),
-                                        label: const Text("Chat",
-                                            style: TextStyle(fontSize: 10)),
+                                        label: Text(
+                                            AppLocalizations.of(context)!.chat,
+                                            style:
+                                                const TextStyle(fontSize: 12)),
                                         style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.green,
                                             padding: const EdgeInsets.symmetric(

@@ -1,6 +1,8 @@
 // presentation/pages/vendor/vendor_requests_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,17 +15,30 @@ class VendorRequestsPage extends StatefulWidget {
 }
 
 class _VendorRequestsPageState extends State<VendorRequestsPage> {
-  late final Stream<List<Map<String, dynamic>>> _requestsStream;
+  // ON NE MET PLUS "late" → on initialise directement
+  Stream<List<Map<String, dynamic>>> get _requestsStream {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      return const Stream.empty();
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    final userId = Supabase.instance.client.auth.currentUser!.id;
-    _requestsStream = Supabase.instance.client
+    return Supabase.instance.client
         .from('product_requests')
         .stream(primaryKey: ['id'])
         .eq('vendor_id', userId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .map((data) {
+          return data.map((request) {
+            // Récupère les données du consommateur joint (si Supabase le fait)
+            final consumer = request['consumer'] as Map<String, dynamic>?;
+
+            return {
+              ...request,
+              'consumer_name': consumer?['name'] ?? 'Client inconnu',
+              'consumer_phone': consumer?['phone'] ?? 'Non disponible',
+            };
+          }).toList();
+        });
   }
 
   void forceRefresh() {
@@ -65,12 +80,12 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
   Future<void> _updateStatus(String requestId, String status) async {
     await Supabase.instance.client.from('product_requests').update({
       'status': status,
-      'responded_at': DateTime.now().toIso8601String()
+      'responded_at': DateTime.now().toIso8601String(),
     }).eq('id', requestId);
   }
 
   void _callClient(String? phone) async {
-    if (phone == null || phone.isEmpty) return;
+    if (phone == null || phone == 'Non disponible') return;
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -81,216 +96,166 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
         _ => Colors.orange,
       };
 
+  String _getStatusText(String? status, AppLocalizations l10n) =>
+      switch (status) {
+        'accepted' => l10n.statusAccepted,
+        'rejected' => l10n.statusRejected,
+        _ => l10n.statusPending,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mes demandes"),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _requestsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Erreur: ${snapshot.error}"));
-          }
+        appBar: AppBar(
+          title: Text(l10n.myRequests),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+        ),
+        body: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _requestsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final requests = snapshot.data ?? [];
-          if (requests.isEmpty) {
-            return const Center(
-              child: Text("Aucune demande pour le moment",
-                  style: TextStyle(fontSize: 18)),
-            );
-          }
+            if (snapshot.hasError) {
+              return Center(
+                  child: Text("${l10n.errorOccurred}: ${snapshot.error}"));
+            }
 
-          return FutureBuilder<Map<String, Map<String, dynamic>>>(
-            future: _getConsumersMap(),
-            builder: (context, consumerSnapshot) {
-              final consumerMap = consumerSnapshot.data ?? {};
+            final requests = snapshot.data ?? [];
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: requests.length,
-                itemBuilder: (_, i) {
-                  final r = requests[i];
-                  final consumerId = r['consumer_id'] as String?;
-                  final consumerData =
-                      consumerId != null ? consumerMap[consumerId] : null;
+            if (requests.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_outlined,
+                        size: 80, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(l10n.noRequestsYet,
+                        style: const TextStyle(fontSize: 18)),
+                  ],
+                ),
+              );
+            }
 
-                  final String clientName =
-                      consumerData?['name'] ?? 'Client inconnu';
-                  final String clientPhone =
-                      consumerData?['phone'] ?? 'Non disponible';
+            return ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: requests.length,
+              itemBuilder: (context, i) {
+                final r = requests[i];
+                final String clientName = r['consumer_name'] as String;
+                final String clientPhone = r['consumer_phone'] as String;
+                final String status = r['status'] as String? ?? 'pending';
 
-                  return Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // PRODUIT
-                          Text(
-                            r['product_name'] ?? 'Produit',
+                return Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r['product_name'] ?? 'Produit',
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                              "${r['quantity']} kg • ${r['price_at_request']} MRU/kg",
-                              style: const TextStyle(fontSize: 15)),
-
-                          const SizedBox(height: 12),
-
-                          // CLIENT
+                                fontWeight: FontWeight.bold, fontSize: 18)),
+                        const SizedBox(height: 4),
+                        Text(
+                            "${r['quantity']} kg • ${r['price_at_request']} MRU/kg"),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          const Icon(Icons.person, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(clientName,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                        ]),
+                        GestureDetector(
+                          onTap: () => _callClient(clientPhone),
+                          child: Row(children: [
+                            const Icon(Icons.phone, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Text(clientPhone,
+                                style: const TextStyle(
+                                    color: Colors.green,
+                                    decoration: TextDecoration.underline)),
+                          ]),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                            "Adresse: ${r['customer_location'] ?? 'Non précisée'}"),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Chip(
+                              backgroundColor: _getStatusColor(status),
+                              label: Text(_getStatusText(status, l10n),
+                                  style: const TextStyle(color: Colors.white)),
+                            ),
+                            Text(
+                                DateFormat('dd/MM HH:mm')
+                                    .format(DateTime.parse(r['created_at'])),
+                                style: TextStyle(color: Colors.grey[600])),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (status == 'pending')
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              const Icon(Icons.person, color: Colors.blue),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  clientName,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                ),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.check, size: 16),
+                                label: Text(l10n.accept),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green),
+                                onPressed: () =>
+                                    _updateStatus(r['id'], 'accepted'),
+                              ),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.close, size: 16),
+                                label: Text(l10n.reject),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                onPressed: () =>
+                                    _updateStatus(r['id'], 'rejected'),
                               ),
                             ],
                           ),
-                          GestureDetector(
-                            onTap: () => _callClient(clientPhone),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.phone, color: Colors.green),
-                                const SizedBox(width: 8),
-                                Text(
-                                  clientPhone,
-                                  style: const TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                    fontSize: 15,
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.chat_bubble),
+                            label: Text(l10n.chat),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => VendorChatScreen(
+                                    consumerId: r['consumer_id'],
+                                    consumerName: clientName,
+                                    consumerPhone: clientPhone,
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                              "Adresse: ${r['customer_location'] ?? 'Non précisée'}",
-                              style: const TextStyle(fontSize: 14)),
-
-                          const SizedBox(height: 16),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // BOUTON CHAT
-
-                              // BOUTONS ACCEPTER/REFUSER
-                              if (r['status'] == 'pending')
-                                Row(
-                                  children: [
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.check, size: 16),
-                                      label: const Text("Accepter"),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () =>
-                                          _updateStatus(r['id'], 'accepted'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.close, size: 16),
-                                      label: const Text("Refuser"),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () =>
-                                          _updateStatus(r['id'], 'rejected'),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-
-                          // STATUT + DATE
-                          Row(
-                            children: [
-                              Chip(
-                                backgroundColor: _getStatusColor(r['status']),
-                                label: Text(
-                                  (r['status'] ?? 'en attente')
-                                      .toString()
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const Spacer(),
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.chat_bubble, size: 18),
-                                label: const Text("Chat"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => VendorChatScreen(
-                                        consumerId: consumerId!,
-                                        consumerName: clientName,
-                                        consumerPhone: clientPhone,
-                                        onMessagesRead:
-                                            forceRefresh, // ← NOUVEAU
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              const Spacer(),
-                              Text(
-                                DateTime.parse(r['created_at'])
-                                    .toLocal()
-                                    .toString()
-                                    .substring(0, 16),
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // BOUTONS : CHAT + ACCEPTER/REFUSER
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
+                  ),
+                );
+              },
+            );
+          },
+        ));
   }
 }

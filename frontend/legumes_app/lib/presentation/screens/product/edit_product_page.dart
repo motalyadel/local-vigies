@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -48,6 +49,7 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
@@ -84,13 +86,13 @@ class _EditProductPageState extends State<EditProductPage> {
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully!')),
+          SnackBar(content: Text(l10n.productUpdatedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update product: $e')),
+          SnackBar(content: Text(l10n.productUpdateFailed)),
         );
       }
     } finally {
@@ -100,9 +102,10 @@ class _EditProductPageState extends State<EditProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Product'),
+        title: Text(l10n.editProduct),
         backgroundColor: Colors.teal,
       ),
       body: SingleChildScrollView(
@@ -133,18 +136,18 @@ class _EditProductPageState extends State<EditProductPage> {
               ElevatedButton.icon(
                 onPressed: _pickPhoto,
                 icon: const Icon(Icons.photo_camera),
-                label: const Text('Change Photo'),
+                label: Text(l10n.changePhoto),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
               ),
               if (imageFile != null)
-                Text('New photo selected: ${imageFile!.name}',
+                Text(l10n.newPhotoSelected,
                     style: const TextStyle(color: Colors.green)),
               const SizedBox(height: 16),
 
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
+                decoration: InputDecoration(
+                  labelText: l10n.productName,
                   prefixIcon: Icon(Icons.inventory_2),
                 ),
                 validator: (v) => v!.trim().isEmpty ? 'Required' : null,
@@ -152,9 +155,9 @@ class _EditProductPageState extends State<EditProductPage> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _priceCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Price (MRU)',
-                  prefixIcon: Icon(Icons.attach_money),
+                decoration: InputDecoration(
+                  labelText: l10n.priceMRU,
+                  prefixIcon: const Icon(Icons.attach_money),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (v) {
@@ -166,8 +169,8 @@ class _EditProductPageState extends State<EditProductPage> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _quantityCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity (K)',
+                decoration: InputDecoration(
+                  labelText: l10n.quantityKg,
                   prefixIcon: Icon(Icons.numbers),
                 ),
                 keyboardType: TextInputType.number,
@@ -176,8 +179,8 @@ class _EditProductPageState extends State<EditProductPage> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(
-                    'Date: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}'),
+                title: Text(l10n.productDate(
+                    DateFormat('dd/MM/yyyy').format(_selectedDate))),
                 trailing: const Icon(Icons.edit_calendar),
                 onTap: () async {
                   final date = await showDatePicker(

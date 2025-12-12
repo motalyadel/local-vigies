@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:legumes_app/core/utils/navigator.dart';
 import 'package:legumes_app/data/services/vendor_service.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/local_provider.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/home/splash_screen.dart';
@@ -71,8 +72,8 @@ class _RegisterPageState extends State<RegisterPage> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        title: const Text("Inscription",
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.register,
+            style: const TextStyle(color: AppColors.textPrimary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.language, color: AppColors.secondary),
@@ -111,7 +112,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               size: 64, color: AppColors.primary),
                           const SizedBox(height: 16),
                           Text(
-                            "Créer un compte",
+                            AppLocalizations.of(context)!.register,
                             style: theme.textTheme.headlineSmall?.copyWith(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
@@ -121,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
-                              labelText: "Nom complet",
+                              labelText: AppLocalizations.of(context)!.name,
                               prefixIcon: const Icon(Icons.person),
                               filled: true,
                               fillColor: AppColors.background,
@@ -132,13 +133,13 @@ class _RegisterPageState extends State<RegisterPage> {
                             validator: (value) =>
                                 value != null && value.trim().length >= 3
                                     ? null
-                                    : "Nom invalide (minimum 3 caractères)",
+                                    : AppLocalizations.of(context)!.invalidNom,
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _shopNameController,
                             decoration: InputDecoration(
-                              labelText: "Nom de la boutique",
+                              labelText: AppLocalizations.of(context)!.shopName,
                               prefixIcon: const Icon(Icons.store),
                               filled: true,
                               fillColor: AppColors.background,
@@ -146,16 +147,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            validator: (value) => value != null &&
-                                    value.trim().length >= 3
-                                ? null
-                                : "Nom de boutique invalide (minimum 3 caractères)",
+                            validator: (value) =>
+                                value != null && value.trim().length >= 3
+                                    ? null
+                                    : AppLocalizations.of(context)!.invalidNom,
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _phoneController,
                             decoration: InputDecoration(
-                              labelText: "Téléphone (optionnel)",
+                              labelText: AppLocalizations.of(context)!.phone,
                               prefixIcon: const Icon(Icons.phone),
                               filled: true,
                               fillColor: AppColors.background,
@@ -165,15 +166,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             validator: (value) => value == null ||
                                     value.trim().isEmpty ||
-                                    value.trim().length >= 6
+                                    value.trim().length >= 8
                                 ? null
-                                : "Numéro invalide (minimum 6 caractères)",
+                                : AppLocalizations.of(context)!.invalidPhone,
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _locationController,
                             decoration: InputDecoration(
-                              labelText: "Localisation (optionnel)",
+                              labelText: AppLocalizations.of(context)!.location,
                               prefixIcon: const Icon(Icons.location_on),
                               filled: true,
                               fillColor: AppColors.background,
@@ -187,7 +188,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
-                              labelText: "Email",
+                              labelText: AppLocalizations.of(context)!.email,
                               prefixIcon: const Icon(Icons.email),
                               filled: true,
                               fillColor: AppColors.background,
@@ -195,17 +196,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            validator: (value) =>
-                                value != null && value.contains('@')
-                                    ? null
-                                    : "Email invalide",
+                            validator: (value) => value != null &&
+                                    value.contains('@')
+                                ? null
+                                : AppLocalizations.of(context)!.invalidEmail,
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _passwordController,
                             obscureText: true,
                             decoration: InputDecoration(
-                              labelText: "Mot de passe",
+                              labelText: AppLocalizations.of(context)!.password,
                               prefixIcon: const Icon(Icons.lock),
                               filled: true,
                               fillColor: AppColors.background,
@@ -213,17 +214,19 @@ class _RegisterPageState extends State<RegisterPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            validator: (value) => value != null &&
-                                    value.length >= 6
-                                ? null
-                                : "Mot de passe trop court (minimum 6 caractères)",
+                            validator: (value) =>
+                                value != null && value.length >= 6
+                                    ? null
+                                    : AppLocalizations.of(context)!
+                                        .passwordTooShort,
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: true,
                             decoration: InputDecoration(
-                              labelText: "Confirmer le mot de passe",
+                              labelText:
+                                  AppLocalizations.of(context)!.confirmPassword,
                               prefixIcon: const Icon(Icons.lock_outline),
                               filled: true,
                               fillColor: AppColors.background,
@@ -234,7 +237,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             validator: (value) =>
                                 value == _passwordController.text
                                     ? null
-                                    : "Les mots de passe ne correspondent pas",
+                                    : AppLocalizations.of(context)!
+                                        .passwordMismatch,
                           ),
                           if (_error != null) ...[
                             const SizedBox(height: 16),
@@ -262,7 +266,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                       ),
                                     ),
                                     onPressed: _register,
-                                    child: const Text("S'inscrire"),
+                                    child: Text(
+                                        AppLocalizations.of(context)!.register),
                                   ),
                           ),
                           const SizedBox(height: 12),
@@ -272,9 +277,10 @@ class _RegisterPageState extends State<RegisterPage> {
                               Navigator.of(context)
                                   .pushReplacementNamed('/login');
                             },
-                            child: const Text(
-                              "Vous avez déjà un compte ? Se connecter",
-                              style: TextStyle(color: AppColors.secondary),
+                            child: Text(
+                              AppLocalizations.of(context)!.haveAccount,
+                              style:
+                                  const TextStyle(color: AppColors.secondary),
                             ),
                           ),
                         ],

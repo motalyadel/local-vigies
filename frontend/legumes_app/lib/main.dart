@@ -12,6 +12,7 @@ import 'package:legumes_app/presentation/screens/consumer/consumer_home_page.dar
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/home/register_page.dart';
 import 'package:legumes_app/presentation/screens/home/splash_screen.dart';
+import 'package:legumes_app/presentation/screens/product/add_product_page.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         supportedLocales: const [
           Locale('en'),
+          Locale('fr'),
           Locale('ar'),
         ],
         locale: localeProvider.locale,
@@ -62,6 +64,7 @@ class MyApp extends StatelessWidget {
           '/admin_vendors': (_) => AdminVendorManagementPage(),
           '/vendor_home': (_) => VendorHomePage(),
           '/consumer_home': (_) => const ConsumerHomePage(),
+          '/add_product': (_) => const AddProductPage(),
         },
         onUnknownRoute: (settings) {
           print('Route inconnue : ${settings.name}');

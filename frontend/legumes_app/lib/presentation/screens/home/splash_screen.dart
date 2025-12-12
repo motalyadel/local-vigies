@@ -1,6 +1,7 @@
 // presentation/screens/splash/splash_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/auth_controller.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:provider/provider.dart';
@@ -93,9 +94,9 @@ class _SplashScreenState extends State<SplashScreen>
                 const SizedBox(height: 32),
 
                 // Titre
-                const Text(
-                  'Marché Local',
-                  style: TextStyle(
+                 Text(
+                  AppLocalizations.of(context)!.marketTitle,
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -103,9 +104,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Les meilleurs produits près de chez vous',
-                  style: TextStyle(
+                 Text(
+                  AppLocalizations.of(context)!.tagline,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
                   ),

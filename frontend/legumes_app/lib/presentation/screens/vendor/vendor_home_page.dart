@@ -1,11 +1,13 @@
 // presentation/pages/vendor_home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
+import 'package:legumes_app/presentation/providers/local_provider.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
+import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/product/all_products_page.dart';
 import 'package:legumes_app/presentation/screens/product/my_products_page.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_chat_list_screen.dart';
-import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_requests_page.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -18,12 +20,16 @@ class VendorHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Consumer<AuthController>(
       builder: (context, auth, child) {
         if (auth.loading) {
           return const Scaffold(
-              body:
-                  Center(child: CircularProgressIndicator(color: Colors.teal)));
+            body: Center(
+              child: CircularProgressIndicator(color: Colors.teal),
+            ),
+          );
         }
 
         if (!auth.isAuthenticated || auth.currentRole != 'vendor') {
@@ -41,27 +47,38 @@ class VendorHomePage extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Vendor Dashboard'),
+            title: Text(l10n.vendorDashboard),
             backgroundColor: Colors.teal,
             actions: [
               IconButton(
+                icon: const Icon(Icons.language, color: AppColors.background),
+                onPressed: () {
+                  final current = localeProvider.locale.languageCode;
+                  final newLocale =
+                      current == 'fr' ? const Locale('ar') : const Locale('fr');
+                  localeProvider.changeLocale(newLocale);
+                },
+                tooltip: 'Changer la langue',
+              ),
+              IconButton(
                 icon: const Icon(Icons.person),
-                tooltip: 'Profile / Logout',
+                tooltip: l10n.profileLogout,
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (_) => AlertDialog(
-                      title: const Text('Logout'),
-                      content: const Text('Are you sure you want to log out?'),
+                      title: Text(l10n.logout),
+                      content: Text(l10n.logoutConfirm),
                       actions: [
                         TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel')),
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(l10n.cancel),
+                        ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red),
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Logout'),
+                          child: Text(l10n.logout),
                         ),
                       ],
                     ),
@@ -86,55 +103,21 @@ class VendorHomePage extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Welcome Card
-                            Card(
-                              elevation: 6,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Welcome back, Vendor!',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.teal,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Manage your products and explore the market.',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[700]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Stats Grid – CLIC → MyProductsPage
+                            // Stats
                             GridView.count(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               crossAxisCount: 2,
-                              crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
-                              childAspectRatio: 1.5,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 1.4,
                               children: [
                                 _buildClickableStatCard(
                                   context: context,
                                   icon: Icons.inventory_2,
-                                  label: 'My Products',
-                                  value: '$totalProducts',
+                                  label: l10n.totalProducts,
+                                  value: totalProducts.toString(),
                                   color: Colors.blue,
                                   onTap: () => Navigator.push(
                                       context,
@@ -144,9 +127,9 @@ class VendorHomePage extends StatelessWidget {
                                 ),
                                 _buildClickableStatCard(
                                   context: context,
-                                  icon: Icons.store,
-                                  label: 'My Stock',
-                                  value: '$totalStock units',
+                                  icon: Icons.scale,
+                                  label: l10n.totalStock,
+                                  value: "$totalStock kg",
                                   color: Colors.green,
                                   onTap: () => Navigator.push(
                                       context,
@@ -156,71 +139,68 @@ class VendorHomePage extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 32),
-                          ],
-                        ),
-                      ),
-                    ),
+                            const SizedBox(height: 24),
 
-                    // Bouton principal → AllProductsPage (tous les produits du marché)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const AllProductsPage()),
-                                  );
-                                },
-                                icon: const Icon(Icons.public, size: 28),
-                                label: const Text('Explore All Market Products',
-                                    style: TextStyle(fontSize: 18)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 18),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
+                            // Menu
+                            ListTile(
+                              leading: const Icon(Icons.add_circle,
+                                  color: Colors.teal),
+                              title: Text(l10n.addProduct),
+                              trailing:
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => AppNavigator.push('/add_product'),
+                            ),
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading: const Icon(Icons.list_alt,
+                                  color: Colors.orange),
+                              title: Text(l10n.myProducts),
+                              trailing:
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const MyProductsPage())),
+                            ),
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading:
+                                  const Icon(Icons.store, color: Colors.purple),
+                              title: Text(l10n.marketProducts),
+                              trailing:
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const AllProductsPage())),
                             ),
                             const SizedBox(height: 12),
                             ListTile(
                               leading:
                                   const Icon(Icons.chat, color: Colors.green),
-                              title: const Text("Mes Conversations"),
+                              title: Text(l10n.myConversations),
                               trailing:
                                   const Icon(Icons.arrow_forward_ios, size: 16),
                               onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const VendorChatListScreen(), // ← CORRIGÉ : va vers la liste
-                                ),
-                              ),
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const VendorChatListScreen())),
                             ),
                             const SizedBox(height: 12),
                             ListTile(
-                              leading: const Icon(Icons.shopping_cart_outlined),
-                              title: const Text("Mes demandes"),
+                              leading: const Icon(Icons.shopping_cart_outlined,
+                                  color: Colors.deepOrange),
+                              title: Text(l10n.myRequests),
                               onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const VendorRequestsPage()),
-                              ),
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const VendorRequestsPage())),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 24),
                             Text(
-                              'Last update: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                              '${l10n.lastUpdate}: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
                               style: TextStyle(
                                   color: Colors.grey[600], fontSize: 12),
                             ),
@@ -238,7 +218,6 @@ class VendorHomePage extends StatelessWidget {
     );
   }
 
-  // Nouvelle fonction pour carte cliquable
   Widget _buildClickableStatCard({
     required BuildContext context,
     required IconData icon,
@@ -254,7 +233,7 @@ class VendorHomePage extends StatelessWidget {
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(

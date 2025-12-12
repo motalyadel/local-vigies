@@ -1,6 +1,7 @@
 // presentation/pages/all_products_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:provider/provider.dart';
 
@@ -9,15 +10,19 @@ class AllProductsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return ChangeNotifierProvider(
       create: (_) => ProductManagementController()..loadAllProducts(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('All Market Products'),
+          title: Text(l10n.allProducts),
           backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
+              tooltip: l10n.refresh,
               onPressed: () {
                 Provider.of<ProductManagementController>(context, listen: false)
                     .loadAllProducts();
@@ -28,81 +33,134 @@ class AllProductsPage extends StatelessWidget {
         body: Consumer<ProductManagementController>(
           builder: (context, controller, child) {
             if (controller.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (controller.products.isEmpty) {
               return const Center(
-                  child: Text('No products available in the market'));
+                  child: CircularProgressIndicator(color: Colors.orange));
             }
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: controller.products.length,
-              itemBuilder: (context, i) {
-                final p = controller.products[i];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              p.imageUrl!,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.broken_image, size: 40),
-                            ),
-                          )
-                        : Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.image, color: Colors.grey),
-                          ),
-                    title: Text(
-                      p.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+
+            if (controller.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(l10n.errorOccurred),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => controller.loadAllProducts(),
+                      child: Text(l10n.retry),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Par : ${p.vendorShopName ?? 'Vendeur inconnu'}",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: p.vendorShopName != null
-                                ? Colors.black87
-                                : Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "${p.price.toStringAsFixed(0)} MRU • ${p.quantity} K",
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                  ],
+                ),
+              );
+            }
+
+            if (controller.products.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.sentiment_dissatisfied,
+                        size: 80, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.noProducts,
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
+                      textAlign: TextAlign.center,
                     ),
-                    trailing: p.vendorPhotoUrl != null &&
-                            p.vendorPhotoUrl!.isNotEmpty
-                        ? CircleAvatar(
-                            radius: 18,
-                            backgroundImage: NetworkImage(p.vendorPhotoUrl!),
-                            backgroundColor: Colors.grey[200],
-                          )
-                        : const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.orange,
-                            child: Icon(Icons.person,
-                                color: Colors.white, size: 20),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: controller.loadAllProducts,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: controller.products.length,
+                itemBuilder: (context, i) {
+                  final p = controller.products[i];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                p.imageUrl!,
+                                width: 70,
+                                height: 70,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.grey[300],
+                                  child:
+                                      const Icon(Icons.broken_image, size: 40),
+                                ),
+                              )
+                            : Container(
+                                width: 70,
+                                height: 70,
+                                color: Colors.grey[200],
+                                child:
+                                    const Icon(Icons.image, color: Colors.grey),
+                              ),
+                      ),
+                      title: Text(
+                        p.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 17),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.vendorBy(
+                                p.vendorShopName ?? l10n.unknownVendor),
+                            style: TextStyle(color: Colors.grey[700]),
                           ),
-                  ),
-                );
-              },
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.attach_money,
+                                  size: 18, color: Colors.green),
+                              Text(
+                                "${p.price.toStringAsFixed(0)} MRU",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(width: 12),
+                              const Icon(Icons.scale,
+                                  size: 18, color: Colors.blue),
+                              Text(
+                                "${p.quantity} kg",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      trailing: p.vendorPhotoUrl != null &&
+                              p.vendorPhotoUrl!.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 20,
+                              backgroundImage: NetworkImage(p.vendorPhotoUrl!),
+                            )
+                          : const CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.orange,
+                              child: Icon(Icons.person, color: Colors.white),
+                            ),
+                    ),
+                  );
+                },
+              ),
             );
           },
         ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:legumes_app/data/models/product_model.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:legumes_app/presentation/screens/product/add_product_page.dart';
 import 'package:legumes_app/presentation/screens/product/edit_product_page.dart';
@@ -28,6 +29,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
   // Dialog rapide pour changer le prix
   Future<void> _showQuickPriceDialog(
       BuildContext context, Product product) async {
+    final l10n = AppLocalizations.of(context)!;
     final controller =
         TextEditingController(text: product.price.toStringAsFixed(0));
 
@@ -35,7 +37,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Nouveau prix – ${product.name}'),
+        title: Text(l10n.updatePriceTitle(product.name)),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
@@ -44,7 +46,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
           style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           decoration: InputDecoration(
             hintText: product.price.toStringAsFixed(0),
-            suffixText: ' DA',
+            suffixText: ' MRU',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(vertical: 20),
           ),
@@ -52,8 +54,9 @@ class _MyProductsPageState extends State<MyProductsPage> {
         actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler', style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child:
+                Text(l10n.cancel, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton.icon(
             onPressed: () {
@@ -63,7 +66,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
               }
             },
             icon: const Icon(Icons.check),
-            label: const Text('Mettre à jour'),
+            label: Text(l10n.update),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -79,12 +82,12 @@ class _MyProductsPageState extends State<MyProductsPage> {
           await Provider.of<ProductManagementController>(context, listen: false)
               .updatePriceDirectly(product.id, newPrice);
 
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success
-                ? 'Prix mis à jour : ${newPrice.toStringAsFixed(0)} DA'
-                : 'Échec de la mise à jour'),
+                ? l10n.priceUpdated(newPrice.toStringAsFixed(0))
+                : l10n.priceUpdateFailed),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
@@ -93,19 +96,22 @@ class _MyProductsPageState extends State<MyProductsPage> {
   }
 
   Future<void> _showDeleteDialog(String productId) async {
+    final l10n = AppLocalizations.of(context)!;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Supprimer le produit"),
-        content: const Text("Cette action est irréversible."),
+        title: Text(l10n.deleteProduct),
+        content: Text(l10n.deleteProductConfirm),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Annuler")),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Supprimer"),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -119,13 +125,16 @@ class _MyProductsPageState extends State<MyProductsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mes Produits"),
+        title: Text(l10n.myProducts),
         backgroundColor: Colors.teal,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: l10n.refresh,
             onPressed: () =>
                 Provider.of<ProductManagementController>(context, listen: false)
                     .loadProducts(),
@@ -134,10 +143,13 @@ class _MyProductsPageState extends State<MyProductsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal,
+        tooltip: l10n.addProduct,
         child: const Icon(Icons.add),
         onPressed: () async {
-          final result = await Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const AddProductPage()));
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddProductPage()),
+          );
           if (result == true) {
             Provider.of<ProductManagementController>(context, listen: false)
                 .loadProducts();
@@ -160,17 +172,21 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   const SizedBox(height: 16),
                   Text(controller.error!),
                   ElevatedButton(
-                      onPressed: () => controller.loadProducts(),
-                      child: const Text("Réessayer")),
+                    onPressed: () => controller.loadProducts(),
+                    child: Text(l10n.retry),
+                  ),
                 ],
               ),
             );
           }
 
           if (controller.products.isEmpty) {
-            return const Center(
-              child: Text("Aucun produit\nAppuyez sur + pour ajouter",
-                  style: TextStyle(fontSize: 18, color: Colors.grey)),
+            return Center(
+              child: Text(
+                l10n.noProductsAddHint,
+                style: const TextStyle(fontSize: 18, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
             );
           }
 
@@ -188,38 +204,46 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: product.imageUrl != null
-                          ? Image.network(product.imageUrl!,
-                              width: 64, height: 64, fit: BoxFit.cover)
+                      child: product.imageUrl != null &&
+                              product.imageUrl!.isNotEmpty
+                          ? Image.network(
+                              product.imageUrl!,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.broken_image, size: 40),
+                              ),
+                            )
                           : Container(
                               color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 40)),
+                              width: 64,
+                              height: 64,
+                              child: const Icon(Icons.image, size: 40),
+                            ),
                     ),
                     title: Text(product.name,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Prix : ${product.price.toStringAsFixed(0)} MRU",
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w600)),
-                        Text("Stock : ${product.quantity} K"),
-                        Text(
-                            "Date : ${DateFormat('dd/MM/yyyy').format(product.date)}"),
+                        Text(l10n.price(product.price.toStringAsFixed(0))),
+                        Text(l10n.stock(product.quantity)),
+                        Text(l10n.productDate(
+                            DateFormat('dd/MM/yyyy').format(product.date))),
                       ],
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Bouton mise à jour rapide du prix
                         IconButton(
                           icon: const Icon(Icons.price_change,
                               color: Colors.orange, size: 28),
-                          tooltip: "Mettre à jour le prix",
+                          tooltip: l10n.updatePrice,
                           onPressed: () =>
                               _showQuickPriceDialog(context, product),
                         ),
-                        // Menu classique
                         PopupMenuButton<String>(
                           onSelected: (value) async {
                             if (value == 'edit') {
@@ -235,12 +259,13 @@ class _MyProductsPageState extends State<MyProductsPage> {
                             }
                           },
                           itemBuilder: (_) => [
-                            const PopupMenuItem(
-                                value: 'edit', child: Text("Modifier")),
-                            const PopupMenuItem(
-                                value: 'delete',
-                                child: Text("Supprimer",
-                                    style: TextStyle(color: Colors.red))),
+                            PopupMenuItem(
+                                value: 'edit', child: Text(l10n.edit)),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(l10n.delete,
+                                  style: const TextStyle(color: Colors.red)),
+                            ),
                           ],
                         ),
                       ],
