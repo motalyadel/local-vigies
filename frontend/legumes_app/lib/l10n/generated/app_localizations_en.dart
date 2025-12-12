@@ -316,4 +316,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reject => ' accept';
+
+  @override
+  String addressLabel(Object location) {
+    return 'Address: $location';
+  }
+
+  @override
+  String get notSpecified => 'Not specified';
+
+  @override
+  String get messagesTitle => 'Messages';
+
+  @override
+  String get noConversations => 'No conversations yet';
+
+  @override
+  String get messagesWillAppearHere => 'Your customers\' messages will appear here';
+
+  @override
+  String get youPrefix => 'You: ';
+
+  @override
+  String get unknownClient => 'Unknown customer';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get phonePrefix => 'Phone';
+
+  @override
+  String get noMessagesYet => 'No messages yet';
+
+  @override
+  String get startConversation => 'Start the conversation!';
+
+  @override
+  String get messageSendFailed => 'Failed to send message';
 }

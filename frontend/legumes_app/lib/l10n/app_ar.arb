@@ -108,5 +108,21 @@
   "unknownStatus": "غير معروف",
 
   "accept": "قبول",
-  "reject": " رفض"
+  "reject": " رفض",
+
+  "addressLabel": "العنوان: {location}",
+  "notSpecified": "غير محدد",
+
+  "messagesTitle": "الرسائل",
+  "noConversations": "لا توجد محادثات بعد",
+  "messagesWillAppearHere": "ستظهر رسائل عملائك هنا",
+  "youPrefix": "أنت: ",
+  "unknownClient": "عميل غير معروف",
+  "errorOccurred": "حدث خطأ",
+  "yesterday": "أمس",
+
+  "phonePrefix": "هاتف",
+  "noMessagesYet": "لا توجد رسائل بعد",
+  "startConversation": "ابدأ المحادثة!",
+  "messageSendFailed": "فشل إرسال الرسالة"
 }

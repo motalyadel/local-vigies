@@ -44,35 +44,35 @@ class ProductManagementController extends ChangeNotifier {
     }
   }
 
-  // NOUVELLE MÉTHODE : Charger les demandes du vendeur
-  Future<void> loadRequests() async {
-    loading = true;
-    error = null;
-    notifyListeners();
+  // // NOUVELLE MÉTHODE : Charger les demandes du vendeur
+  // Future<void> loadRequests() async {
+  //   loading = true;
+  //   error = null;
+  //   notifyListeners();
 
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        products = [];
-        return;
-      }
+  //   try {
+  //     final userId = Supabase.instance.client.auth.currentUser?.id;
+  //     if (userId == null) {
+  //       products = [];
+  //       return;
+  //     }
 
-      final response = await Supabase.instance.client
-          .from('product_requests')
-          .select()
-          .eq('vendor_id', userId)
-          .order('created_at', ascending: false);
+  //     final response = await Supabase.instance.client
+  //         .from('product_requests')
+  //         .select()
+  //         .eq('vendor_id', userId)
+  //         .order('created_at', ascending: false);
 
-      products =
-          (response as List).map((json) => Product.fromMap(json)).toList();
-    } catch (e) {
-      error = 'Failed to load requests: $e';
-      products = [];
-    } finally {
-      loading = false;
-      notifyListeners();
-    }
-  }
+  //     products =
+  //         (response as List).map((json) => Product.fromMap(json)).toList();
+  //   } catch (e) {
+  //     error = 'Failed to load requests: $e';
+  //     products = [];
+  //   } finally {
+  //     loading = false;
+  //     notifyListeners();
+  //   }
+  // }
 
   // Créer un nouveau produit
   Future<void> createProduct({

@@ -1,6 +1,8 @@
 // presentation/pages/chat/vendor_chat_list_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,12 +31,8 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
         .order('created_at', ascending: false);
   }
 
-  // Ajoute cette fonction dans ta classe _VendorChatListScreenState
   void _refreshUnreadCount() {
-    if (mounted) {
-      setState(
-          () {}); // Force le rebuild complet → badge disparaît immédiatement
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _markAsReadAndRefresh(String consumerId) async {
@@ -52,164 +50,137 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Messages",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.messagesTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _messagesStream,
+      body: StreamBuilder<Map<String, _Conversation>>(
+        stream: _messagesStream
+            .map((messages) => _groupMessagesByConsumer(messages)),
         builder: (context, snapshot) {
-          final messages = snapshot.data ?? [];
-          if (messages.isEmpty) return _buildEmptyState();
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+                child: CircularProgressIndicator(color: Colors.green));
+          }
 
-          final conversations = _buildConversations(messages);
-          final consumerIds = conversations.keys.toList();
+          if (snapshot.hasError) {
+            return Center(
+                child: Text("${l10n.errorOccurred}: ${snapshot.error}"));
+          }
+
+          final conversations = snapshot.data ?? {};
+
+          if (conversations.isEmpty) {
+            return _buildEmptyState(l10n);
+          }
 
           return FutureBuilder<Map<String, Map<String, dynamic>>>(
-            future: _fetchConsumers(consumerIds),
+            future: _fetchConsumers(conversations.keys.toList()),
             builder: (context, consumerSnapshot) {
               final consumerMap = consumerSnapshot.data ?? {};
 
-              final sortedList = conversations.entries.map((e) {
-                final consumerId = e.key;
-                final conv = e.value;
-                final consumer = consumerMap[consumerId];
+              final sortedConversations = conversations.entries.toList()
+                ..sort((a, b) {
+                  final timeA =
+                      DateTime.tryParse(a.value.lastTime) ?? DateTime(1970);
+                  final timeB =
+                      DateTime.tryParse(b.value.lastTime) ?? DateTime(1970);
+                  return timeB.compareTo(timeA);
+                });
 
-                return {
-                  'consumer_id': consumerId,
-                  'name': consumer?['name'] ?? 'Client inconnu',
-                  'phone': consumer?['phone'] ?? 'Non renseigné',
-                  'last_message': conv.lastMessage,
-                  'last_time': conv.lastTime,
-                  'unread_count': conv.unreadCount,
-                };
-              }).toList()
-                ..sort((a, b) => DateTime.parse(b['last_time'] as String)
-                    .compareTo(DateTime.parse(a['last_time'] as String)));
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: sortedConversations.length,
+                itemBuilder: (context, i) {
+                  final entry = sortedConversations[i];
+                  final consumerId = entry.key;
+                  final conv = entry.value;
+                  final consumerData = consumerMap[consumerId];
 
-              return ListView.separated(
-                itemCount: sortedList.length,
-                separatorBuilder: (_, __) =>
-                    const Divider(height: 1, indent: 80),
-                itemBuilder: (context, index) {
-                  final item = sortedList[index];
-                  final unread = item['unread_count'] as int;
-                  final hasUnread = unread > 0;
+                  final String clientName =
+                      consumerData?['name'] ?? l10n.unknownClient;
+                  final String clientPhone = consumerData?['phone'] ?? '';
 
-                  return InkWell(
-                    onTap: () async {
-                      await _markAsReadAndRefresh(
-                          item['consumer_id'] as String);
-
-                      if (!mounted) return;
-
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VendorChatScreen(
-                            consumerId: item['consumer_id'] as String,
-                            consumerName: item['name'] as String,
-                            consumerPhone: item['phone'] as String,
-                            onMessagesRead:
-                                _refreshUnreadCount, // ← Ici ! On passe la fonction
-                          ),
+                  return Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.green.shade100,
+                        child: Text(
+                          clientName.isNotEmpty
+                              ? clientName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20),
                         ),
-                      );
-
-                      // Optionnel : refresh au retour (au cas où le vendor a envoyé un message)
-                      if (mounted) setState(() {});
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 14),
-                      child: Row(
+                      ),
+                      title: Text(
+                        clientName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 17),
+                      ),
+                      subtitle: Text(
+                        conv.lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: hasUnread
-                                ? Colors.green.shade700
-                                : Colors.green.shade600,
-                            child: Text(
-                              (item['name'] as String).isNotEmpty
-                                  ? (item['name'] as String)[0].toUpperCase()
-                                  : "C",
-                              style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
+                          Text(
+                            _formatTime(conv.lastTime),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['name'] as String,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: hasUnread
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['last_message'] as String,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: hasUnread
-                                        ? Colors.black87
-                                        : Colors.grey.shade600,
-                                    fontWeight: hasUnread
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                _formatTime(item['last_time'] as String),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: hasUnread
-                                      ? Colors.green.shade700
-                                      : Colors.grey.shade600,
-                                  fontWeight:
-                                      hasUnread ? FontWeight.bold : null,
-                                ),
+                          if (conv.unreadCount > 0)
+                            Container(
+                              margin: const EdgeInsets.only(top: 6),
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
                               ),
-                              const SizedBox(height: 8),
-                              if (hasUnread)
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle),
-                                  constraints:
-                                      const BoxConstraints(minWidth: 22),
-                                  child: Text(
-                                    unread > 99 ? "99+" : unread.toString(),
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                            ],
-                          ),
+                              child: Text(
+                                conv.unreadCount > 99
+                                    ? '99+'
+                                    : conv.unreadCount.toString(),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
                         ],
                       ),
+                      onTap: () async {
+                        await _markAsReadAndRefresh(consumerId);
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VendorChatScreen(
+                              consumerId: consumerId,
+                              consumerName: clientName,
+                              consumerPhone: clientPhone,
+                              onMessagesRead: _refreshUnreadCount,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
@@ -221,44 +192,54 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
     );
   }
 
-  // Affiche le vrai dernier message (vendor ou consumer)
-  Map<String, _Conversation> _buildConversations(
+  Widget _buildEmptyState(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline, size: 90, color: Colors.grey[400]),
+          const SizedBox(height: 20),
+          Text(l10n.noConversations,
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Text(l10n.messagesWillAppearHere,
+              style: TextStyle(color: Colors.grey[600])),
+        ],
+      ),
+    );
+  }
+
+  Map<String, _Conversation> _groupMessagesByConsumer(
       List<Map<String, dynamic>> messages) {
-    final map = <String, _Conversation>{};
+    final Map<String, _Conversation> map = {};
 
     for (final msg in messages) {
-      final consumerId = msg['consumer_id'] as String?;
-      if (consumerId == null) continue;
-
-      final text = (msg['text'] as String?)?.trim() ?? '';
-      final displayText = text.isEmpty ? "[Photo]" : text;
-      final time = msg['created_at'] as String;
+      final consumerId = msg['consumer_id'] as String;
       final isFromVendor = msg['sender_type'] == 'vendor';
-      final isRead = (msg['read'] as bool?) ?? false;
+      final isRead = msg['read'] as bool? ?? true;
+      final text = msg['text'] as String;
+      final time = msg['created_at'] as String;
 
+      final displayText = isFromVendor
+          ? "${AppLocalizations.of(context)!.youPrefix} $text"
+          : text;
+
+      map.putIfAbsent(
+        consumerId,
+        () => _Conversation(lastMessage: displayText, lastTime: time),
+      );
+
+      final conv = map[consumerId]!;
       final messageDate = DateTime.parse(time);
 
-      // Si la conversation n'existe pas encore OU si ce message est plus récent
-      if (!map.containsKey(consumerId)) {
-        map[consumerId] = _Conversation(
-          lastMessage: displayText,
-          lastTime: time,
-          unreadCount: (isFromVendor || isRead) ? 0 : 1,
-        );
-      } else {
-        final conv = map[consumerId]!;
-        final currentLastDate = DateTime.parse(conv.lastTime);
+      if (DateTime.parse(conv.lastTime).isBefore(messageDate)) {
+        conv.lastMessage = displayText;
+        conv.lastTime = time;
+      }
 
-        // On garde uniquement le message le plus récent
-        if (messageDate.isAfter(currentLastDate)) {
-          conv.lastMessage = displayText;
-          conv.lastTime = time;
-        }
-
-        // On compte les non-lus uniquement si c'est du consommateur et pas lu
-        if (!isFromVendor && !isRead) {
-          conv.unreadCount += 1;
-        }
+      if (!isFromVendor && !isRead) {
+        conv.unreadCount += 1;
       }
     }
 
@@ -276,33 +257,18 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
   }
 
   String _formatTime(String iso) {
+    final l10n = AppLocalizations.of(context)!;
     final date = DateTime.parse(iso).toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final msgDay = DateTime(date.year, date.month, date.day);
 
     if (msgDay == today) {
-      return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+      return DateFormat('HH:mm').format(date);
     }
-    if (msgDay == today.subtract(const Duration(days: 1))) return "Hier";
-    return "${date.day}/${date.month}";
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.chat_bubble_outline, size: 90, color: Colors.grey),
-          SizedBox(height: 20),
-          Text("Aucune conversation",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-          SizedBox(height: 8),
-          Text("Les messages de vos clients apparaîtront ici",
-              style: TextStyle(color: Colors.grey)),
-        ],
-      ),
-    );
+    if (msgDay == today.subtract(const Duration(days: 1)))
+      return l10n.yesterday;
+    return DateFormat('dd/MM').format(date);
   }
 }
 
@@ -314,6 +280,5 @@ class _Conversation {
   _Conversation({
     required this.lastMessage,
     required this.lastTime,
-    int unreadCount = 0,
-  }) : unreadCount = unreadCount;
+  });
 }

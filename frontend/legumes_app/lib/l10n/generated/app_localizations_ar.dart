@@ -316,4 +316,42 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reject => ' رفض';
+
+  @override
+  String addressLabel(Object location) {
+    return 'العنوان: $location';
+  }
+
+  @override
+  String get notSpecified => 'غير محدد';
+
+  @override
+  String get messagesTitle => 'الرسائل';
+
+  @override
+  String get noConversations => 'لا توجد محادثات بعد';
+
+  @override
+  String get messagesWillAppearHere => 'ستظهر رسائل عملائك هنا';
+
+  @override
+  String get youPrefix => 'أنت: ';
+
+  @override
+  String get unknownClient => 'عميل غير معروف';
+
+  @override
+  String get yesterday => 'أمس';
+
+  @override
+  String get phonePrefix => 'هاتف';
+
+  @override
+  String get noMessagesYet => 'لا توجد رسائل بعد';
+
+  @override
+  String get startConversation => 'ابدأ المحادثة!';
+
+  @override
+  String get messageSendFailed => 'فشل إرسال الرسالة';
 }

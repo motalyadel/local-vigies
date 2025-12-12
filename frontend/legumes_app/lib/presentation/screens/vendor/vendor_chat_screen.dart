@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:legumes_app/data/models/product_model.dart';
+import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VendorChatScreen extends StatefulWidget {
@@ -50,27 +50,19 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
       final response = await Supabase.instance.client
           .from('messages')
           .select()
-          .eq('vendor_id', _vendor.id) // .eq() marche pour select()
+          .eq('vendor_id', _vendor.id)
           .eq('consumer_id', widget.consumerId)
           .order('created_at', ascending: true);
 
-      final List<types.Message> loaded = [];
-
-      for (var messages in response) {
-        final text = (messages['text'] as String?)?.trim() ?? '[Message vide]';
-        final createdAt = DateTime.tryParse(messages['created_at'] as String? ?? '')
-                ?.millisecondsSinceEpoch ??
-            DateTime.now().millisecondsSinceEpoch;
-
-        final isFromVendor = messages['sender_type'] == 'vendor';
-
-        loaded.add(types.TextMessage(
+      final List<types.Message> loaded = response.map<types.TextMessage>((msg) {
+        final isFromVendor = msg['sender_type'] == 'vendor';
+        return types.TextMessage(
           author: isFromVendor ? _vendor : _consumer,
-          createdAt: createdAt,
-          id: messages['id'].toString(),
-          text: text,
-        ));
-      }
+          createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
+          id: msg['id'].toString(),
+          text: msg['text'] as String,
+        );
+      }).toList();
 
       if (mounted) {
         setState(() {
@@ -85,80 +77,18 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
   void _listenToRealtime() {
     Supabase.instance.client
         .from('messages')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: true)
-        .listen((List<Map<String, dynamic>> data) {
-          // Filtre en mémoire : seulement les messages de cette conversation
-          final filteredData = data
-              .where((messages) =>
-                  messages['vendor_id'] == _vendor.id &&
-                  messages['consumer_id'] == widget.consumerId)
-              .toList();
+        .stream(primaryKey: ['id']).listen((data) {
+      final filtered = data.where((msg) =>
+          (msg['vendor_id'] == _vendor.id &&
+              msg['consumer_id'] == widget.consumerId) ||
+          (msg['consumer_id'] == widget.consumerId &&
+              msg['vendor_id'] == _vendor.id));
 
-          if (mounted) {
-            _loadMessagesFromData(filteredData); // Nouvelle fonction
-            _markMessagesAsRead();
-          }
-        });
-  }
-
-// Nouvelle fonction pour charger depuis data filtré
-  void _loadMessagesFromData(List<Map<String, dynamic>> filteredData) {
-    final List<types.Message> loaded = [];
-
-    for (var messages in filteredData) {
-      final text = (messages['text'] as String?)?.trim() ?? '[Message vide]';
-      final createdAt = DateTime.tryParse(messages['created_at'] as String? ?? '')
-              ?.millisecondsSinceEpoch ??
-          DateTime.now().millisecondsSinceEpoch;
-
-      final isFromVendor = messages['sender_type'] == 'vendor';
-
-      loaded.add(types.TextMessage(
-        author: isFromVendor ? _vendor : _consumer,
-        createdAt: createdAt,
-        id: messages['id'].toString(),
-        text: text,
-      ));
-    }
-
-    setState(() {
-      _messages = loaded.reversed.toList();
-    });
-  }
-
-  void _handleSendPressed(types.PartialText message) async {
-    if (message.text.trim().isEmpty) return;
-
-    final tempMessage = types.TextMessage(
-      author: _vendor,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: message.text.trim(),
-    );
-
-    setState(() {
-      _messages = [tempMessage, ..._messages];
-    });
-
-    try {
-      await Supabase.instance.client.from('messages').insert({
-        'text': message.text.trim(),
-        'sender_type': 'vendor',
-        'vendor_id': _vendor.id,
-        'consumer_id': widget.consumerId,
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _messages.removeWhere((m) => m.id == tempMessage.id);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Échec de l'envoi"), backgroundColor: Colors.red),
-        );
+      if (filtered.isNotEmpty) {
+        _loadMessages();
+        _markMessagesAsRead();
       }
-    }
+    });
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -173,12 +103,46 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
 
       widget.onMessagesRead?.call();
     } catch (e) {
-      debugPrint("Erreur marquage comme lu: $e");
+      debugPrint("Erreur marquage messages lus: $e");
+    }
+  }
+
+  void _handleSendPressed(types.PartialText message) async {
+    final tempMessage = types.TextMessage(
+      author: _vendor,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: message.text,
+    );
+
+    setState(() {
+      _messages = [tempMessage, ..._messages];
+    });
+
+    try {
+      await Supabase.instance.client.from('messages').insert({
+        'text': message.text,
+        'sender_type': 'vendor',
+        'vendor_id': _vendor.id,
+        'consumer_id': widget.consumerId,
+      });
+    } catch (e) {
+      setState(() {
+        _messages.removeWhere((m) => m.id == tempMessage.id);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.messageSendFailed)),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -189,7 +153,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              "Tél: ${widget.consumerPhone}",
+              "${l10n.phonePrefix}: ${widget.consumerPhone}",
               style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
           ],
@@ -198,15 +162,17 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
         foregroundColor: Colors.white,
       ),
       body: _messages.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("Aucun message", style: TextStyle(fontSize: 18)),
-                  Text("Commencez la conversation !",
-                      style: TextStyle(color: Colors.grey)),
+                  const Icon(Icons.chat_bubble_outline,
+                      size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(l10n.noMessagesYet,
+                      style: const TextStyle(fontSize: 18)),
+                  Text(l10n.startConversation,
+                      style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             )
@@ -214,15 +180,44 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
               messages: _messages,
               onSendPressed: _handleSendPressed,
               user: _vendor,
-              theme: const DefaultChatTheme(
+              theme: DefaultChatTheme(
                 primaryColor: Colors.green,
-                inputBackgroundColor: Colors.green,
-                sentMessageBodyTextStyle: TextStyle(color: Colors.white),
-                receivedMessageBodyTextStyle: TextStyle(color: Colors.black87),
-                backgroundColor: Color(0xFFF1F3F5),
+                inputBackgroundColor: Colors.white,
+                inputTextColor: Colors.black87,
+                sentMessageBodyTextStyle: const TextStyle(color: Colors.white),
+                receivedMessageBodyTextStyle:
+                    const TextStyle(color: Colors.black87),
+                backgroundColor: const Color(0xFFF1F3F5),
+                inputMargin: const EdgeInsets.all(12),
+                inputBorderRadius: BorderRadius.circular(30),
+                inputElevation: 8,
+                inputContainerDecoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
               ),
               showUserAvatars: true,
               showUserNames: true,
+              emptyState: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.chat_bubble_outline,
+                        size: 80, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(l10n.noMessagesYet),
+                    Text(l10n.startConversation,
+                        style: TextStyle(color: Colors.grey[600])),
+                  ],
+                ),
+              ),
             ),
     );
   }

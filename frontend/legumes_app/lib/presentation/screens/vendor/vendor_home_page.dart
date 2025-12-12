@@ -76,7 +76,8 @@ class VendorHomePage extends StatelessWidget {
                         ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red),
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white),
                           onPressed: () => Navigator.pop(context, true),
                           child: Text(l10n.logout),
                         ),

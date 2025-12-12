@@ -108,5 +108,21 @@
   "unknownStatus": "Inconnu",
 
   "accept": "Accepter",
-  "reject": "Refuser"
+  "reject": "Refuser",
+
+  "addressLabel": "Adresse : {location}",
+  "notSpecified": "Non précisée",
+
+  "messagesTitle": "Messages",
+  "noConversations": "Aucune conversation",
+  "messagesWillAppearHere": "Les messages de vos clients apparaîtront ici",
+  "youPrefix": "Vous : ",
+  "unknownClient": "Client inconnu",
+  "errorOccurred": "Une erreur est survenue",
+  "yesterday": "Hier",
+
+  "phonePrefix": "Tél",
+  "noMessagesYet": "Aucun message pour le moment",
+  "startConversation": "Commencez la conversation !",
+  "messageSendFailed": "Échec de l'envoi du message"
 }

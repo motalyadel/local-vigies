@@ -15,66 +15,49 @@ class VendorRequestsPage extends StatefulWidget {
 }
 
 class _VendorRequestsPageState extends State<VendorRequestsPage> {
-  // ON NE MET PLUS "late" → on initialise directement
+  // Stream avec jointure manuelle du consommateur (nom + téléphone)
   Stream<List<Map<String, dynamic>>> get _requestsStream {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) {
-      return const Stream.empty();
-    }
+    if (userId == null) return const Stream.empty();
 
     return Supabase.instance.client
         .from('product_requests')
         .stream(primaryKey: ['id'])
         .eq('vendor_id', userId)
         .order('created_at', ascending: false)
-        .map((data) {
-          return data.map((request) {
-            // Récupère les données du consommateur joint (si Supabase le fait)
-            final consumer = request['consumer'] as Map<String, dynamic>?;
+        .asyncMap((requests) async {
+          final consumerIds = requests
+              .map((r) => r['consumer_id'] as String?)
+              .where((id) => id != null)
+              .toSet()
+              .toList();
+
+          Map<String, Map<String, dynamic>> consumerMap = {};
+
+          if (consumerIds.isNotEmpty) {
+            final consumersResponse = await Supabase.instance.client
+                .from('consumers')
+                .select('id, name, phone')
+                .inFilter('id', consumerIds);
+
+            consumerMap = {
+              for (var c in consumersResponse)
+                c['id'] as String: c as Map<String, dynamic>
+            };
+          }
+
+          return requests.map((r) {
+            final consumerId = r['consumer_id'] as String?;
+            final consumerData =
+                consumerId != null ? consumerMap[consumerId] : null;
 
             return {
-              ...request,
-              'consumer_name': consumer?['name'] ?? 'Client inconnu',
-              'consumer_phone': consumer?['phone'] ?? 'Non disponible',
+              ...r,
+              'consumer_name': consumerData?['name'] ?? 'Client inconnu',
+              'consumer_phone': consumerData?['phone'] ?? 'Non disponible',
             };
           }).toList();
         });
-  }
-
-  void forceRefresh() {
-    setState(() {}); // Force rebuild complet → recalcule tout
-  }
-
-  Future<Map<String, Map<String, dynamic>>> _getConsumersMap() async {
-    try {
-      final vendorId = Supabase.instance.client.auth.currentUser!.id;
-      final requests = await Supabase.instance.client
-          .from('product_requests')
-          .select('consumer_id')
-          .eq('vendor_id', vendorId);
-
-      if (requests.isEmpty) return {};
-
-      final consumerIds = (requests as List)
-          .map((r) => r['consumer_id'] as String?)
-          .where((id) => id != null)
-          .toSet()
-          .toList();
-
-      if (consumerIds.isEmpty) return {};
-
-      final consumers = await Supabase.instance.client
-          .from('consumers')
-          .select('id, name, phone')
-          .inFilter('id', consumerIds);
-
-      return {
-        for (var c in consumers) c['id'] as String: c as Map<String, dynamic>
-      };
-    } catch (e) {
-      print("Erreur chargement consommateurs: $e");
-      return {};
-    }
   }
 
   Future<void> _updateStatus(String requestId, String status) async {
@@ -85,7 +68,7 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
   }
 
   void _callClient(String? phone) async {
-    if (phone == null || phone == 'Non disponible') return;
+    if (phone == null || phone == 'Non disponible' || phone.isEmpty) return;
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -108,133 +91,122 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.myRequests),
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-        ),
-        body: StreamBuilder<List<Map<String, dynamic>>>(
-          stream: _requestsStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      appBar: AppBar(
+        title: Text(l10n.myRequests),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _requestsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+                child: CircularProgressIndicator(color: Colors.teal));
+          }
 
-            if (snapshot.hasError) {
-              return Center(
-                  child: Text("${l10n.errorOccurred}: ${snapshot.error}"));
-            }
+          if (snapshot.hasError) {
+            return Center(
+                child: Text("${l10n.errorOccurred}: ${snapshot.error}"));
+          }
 
-            final requests = snapshot.data ?? [];
+          final requests = snapshot.data ?? [];
 
-            if (requests.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inbox_outlined,
-                        size: 80, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(l10n.noRequestsYet,
-                        style: const TextStyle(fontSize: 18)),
-                  ],
-                ),
-              );
-            }
+          if (requests.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(l10n.noRequestsYet,
+                      style: const TextStyle(fontSize: 18)),
+                ],
+              ),
+            );
+          }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: requests.length,
-              itemBuilder: (context, i) {
-                final r = requests[i];
-                final String clientName = r['consumer_name'] as String;
-                final String clientPhone = r['consumer_phone'] as String;
-                final String status = r['status'] as String? ?? 'pending';
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: requests.length,
+            itemBuilder: (context, i) {
+              final r = requests[i];
+              final String clientName = r['consumer_name'] as String;
+              final String clientPhone = r['consumer_phone'] as String;
+              final String status = r['status'] as String? ?? 'pending';
 
-                return Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(r['product_name'] ?? 'Produit',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 18)),
-                        const SizedBox(height: 4),
-                        Text(
-                            "${r['quantity']} kg • ${r['price_at_request']} MRU/kg"),
-                        const SizedBox(height: 12),
-                        Row(children: [
-                          const Icon(Icons.person, color: Colors.blue),
+              return Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // PRODUIT
+                      Text(
+                        r['product_name'] ?? 'Produit',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                          "${r['quantity']} kg • ${r['price_at_request']} MRU/kg",
+                          style: const TextStyle(fontSize: 15)),
+                      const SizedBox(height: 12),
+
+                      // CLIENT
+                      Row(children: [
+                        const Icon(Icons.person, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(clientName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ]),
+                      GestureDetector(
+                        onTap: () => _callClient(clientPhone),
+                        child: Row(children: [
+                          const Icon(Icons.phone, color: Colors.green),
                           const SizedBox(width: 8),
-                          Text(clientName,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(clientPhone,
+                              style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 15)),
                         ]),
-                        GestureDetector(
-                          onTap: () => _callClient(clientPhone),
-                          child: Row(children: [
-                            const Icon(Icons.phone, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Text(clientPhone,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.addressLabel(
+                            r['customer_location'] ?? l10n.notSpecified),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // STATUT + DATE
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Chip(
+                            backgroundColor: _getStatusColor(status),
+                            label: Text(_getStatusText(status, l10n),
                                 style: const TextStyle(
-                                    color: Colors.green,
-                                    decoration: TextDecoration.underline)),
-                          ]),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                            "Adresse: ${r['customer_location'] ?? 'Non précisée'}"),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Chip(
-                              backgroundColor: _getStatusColor(status),
-                              label: Text(_getStatusText(status, l10n),
-                                  style: const TextStyle(color: Colors.white)),
-                            ),
-                            Text(
-                                DateFormat('dd/MM HH:mm')
-                                    .format(DateTime.parse(r['created_at'])),
-                                style: TextStyle(color: Colors.grey[600])),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        if (status == 'pending')
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.check, size: 16),
-                                label: Text(l10n.accept),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green),
-                                onPressed: () =>
-                                    _updateStatus(r['id'], 'accepted'),
-                              ),
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.close, size: 16),
-                                label: Text(l10n.reject),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red),
-                                onPressed: () =>
-                                    _updateStatus(r['id'], 'rejected'),
-                              ),
-                            ],
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
                           ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.chat_bubble),
+                          const Spacer(),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.chat_bubble, size: 18),
                             label: Text(l10n.chat),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue),
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8))),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -248,14 +220,56 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                               );
                             },
                           ),
+                          const Spacer(),
+                          Text(
+                            DateFormat('dd/MM HH:mm')
+                                .format(DateTime.parse(r['created_at'])),
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // BOUTONS ACCEPTER / REFUSER
+                      if (status == 'pending')
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.check, size: 16),
+                              label: Text(l10n.accept),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8))),
+                              onPressed: () =>
+                                  _updateStatus(r['id'], 'accepted'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.close, size: 16),
+                              label: Text(l10n.reject),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8))),
+                              onPressed: () =>
+                                  _updateStatus(r['id'], 'rejected'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+
+                      const SizedBox(height: 12),
+                    ],
                   ),
-                );
-              },
-            );
-          },
-        ));
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
