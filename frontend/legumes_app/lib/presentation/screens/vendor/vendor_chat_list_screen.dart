@@ -56,7 +56,7 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
       appBar: AppBar(
         title: Text(l10n.messagesTitle,
             style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<Map<String, _Conversation>>(
@@ -65,7 +65,7 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: Colors.green));
+                child: CircularProgressIndicator(color: Colors.teal));
           }
 
           if (snapshot.hasError) {

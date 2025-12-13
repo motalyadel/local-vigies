@@ -1,5 +1,7 @@
 // presentation/pages/add_product_page.dart
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -40,6 +42,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
     final controller =
         Provider.of<ProductManagementController>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final success = await controller.createProduct(
@@ -55,17 +58,22 @@ class _AddProductPageState extends State<AddProductPage> {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.productCreatedSuccess),
+          content: Text(l10n.productCreatedSuccess),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                "${AppLocalizations.of(context)!.productCreatedFailed}: $e"),
+            content: Text("${l10n.productCreatedFailed}: $e"),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -79,29 +87,92 @@ class _AddProductPageState extends State<AddProductPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(l10n.addProduct),
+        title: Text(l10n.addProduct,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
+              // Photo du produit
+              Center(
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                            color: Colors.teal.withOpacity(0.3), width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10)),
+                        ],
+                      ),
+                      child: _photo != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(26),
+                              child: Image.file(
+                                File(_photo!.path),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.broken_image,
+                                        size: 50, color: Colors.grey),
+                              ),
+                            )
+                          : const Icon(Icons.image_rounded,
+                              size: 80, color: Colors.grey),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: FloatingActionButton.small(
+                        onPressed: _pickPhoto,
+                        backgroundColor: Colors.teal,
+                        child:
+                            const Icon(Icons.camera_alt, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
               // Nom du produit
               TextFormField(
                 controller: _nameCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   labelText: l10n.productName,
-                  prefixIcon: const Icon(Icons.inventory_2),
+                  prefixIcon: const Icon(Icons.inventory_2_rounded),
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: Colors.grey[300]!)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide:
+                          const BorderSide(color: Colors.teal, width: 2)),
                 ),
                 validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Prix
               TextFormField(
@@ -109,19 +180,29 @@ class _AddProductPageState extends State<AddProductPage> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: l10n.priceMRU,
-                  prefixIcon: const Icon(Icons.attach_money),
+                  prefixIcon: const Icon(Icons.attach_money_rounded),
+                  suffixText: ' MRU',
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: Colors.grey[300]!)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide:
+                          const BorderSide(color: Colors.teal, width: 2)),
                 ),
                 validator: (v) {
                   if (v!.trim().isEmpty) return l10n.fieldRequired;
-                  if (double.tryParse(v) == null || double.parse(v) <= 0) {
+                  if (double.tryParse(v) == null || double.parse(v) <= 0)
                     return l10n.invalidPrice;
-                  }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Quantité
               TextFormField(
@@ -129,73 +210,86 @@ class _AddProductPageState extends State<AddProductPage> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: l10n.quantityKg,
-                  prefixIcon: const Icon(Icons.scale),
+                  prefixIcon: const Icon(Icons.scale_rounded),
+                  suffixText: ' kg',
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: Colors.grey[300]!)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide:
+                          const BorderSide(color: Colors.teal, width: 2)),
                 ),
                 validator: (v) {
                   if (v!.trim().isEmpty) return l10n.fieldRequired;
-                  if (int.tryParse(v) == null || int.parse(v) <= 0) {
+                  if (int.tryParse(v) == null || int.parse(v) <= 0)
                     return l10n.invalidQuantity;
-                  }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Date
               ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: Text(l10n.productDate(
-                    DateFormat('dd/MM/yyyy').format(_selectedDate))),
-                trailing: const Icon(Icons.edit_calendar),
                 onTap: () async {
                   final date = await showDatePicker(
                     context: context,
                     initialDate: _selectedDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
+                    builder: (context, child) => Theme(
+                        data: Theme.of(context).copyWith(
+                            colorScheme:
+                                const ColorScheme.light(primary: Colors.teal)),
+                        child: child!),
                   );
                   if (date != null) setState(() => _selectedDate = date);
                 },
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Colors.grey[300]!)),
+                tileColor: Colors.white,
+                leading: const Icon(Icons.calendar_today_rounded,
+                    color: Colors.teal),
+                title: Text(
+                    l10n.productDate(
+                        DateFormat('dd MMMM yyyy').format(_selectedDate)),
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                trailing: const Icon(Icons.edit_calendar, color: Colors.teal),
               ),
-              const SizedBox(height: 16),
-
-              // Photo
-              ElevatedButton.icon(
-                onPressed: _pickPhoto,
-                icon: const Icon(Icons.photo_camera),
-                label: Text(l10n.selectPhoto),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-              ),
-              if (_photo != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${l10n.photoSelected}: ${_photo!.name}',
-                  style: const TextStyle(
-                      color: Colors.green, fontWeight: FontWeight.w500),
-                ),
-              ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
 
               // Bouton Créer
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 60,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.all(16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(30)),
+                    elevation: 12,
+                    shadowColor: Colors.teal.withOpacity(0.4),
                   ),
                   child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(l10n.createProduct,
-                          style: const TextStyle(fontSize: 16)),
+                      ? const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 3)
+                      : Text(
+                          l10n.createProduct,
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

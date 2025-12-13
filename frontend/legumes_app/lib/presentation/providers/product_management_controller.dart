@@ -44,6 +44,24 @@ class ProductManagementController extends ChangeNotifier {
     }
   }
 
+  Future<int> get pendingRequestsCount async {
+  final vendorId = Supabase.instance.client.auth.currentUser?.id;
+  if (vendorId == null) return 0;
+
+  try {
+    final response = await Supabase.instance.client
+        .from('product_requests')
+        .select('id')
+        .eq('vendor_id', vendorId)
+        .eq('status', 'pending');
+
+    return response.length;
+  } catch (e) {
+    print("Erreur comptage demandes pending: $e");
+    return 0;
+  }
+}
+
   // // NOUVELLE MÉTHODE : Charger les demandes du vendeur
   // Future<void> loadRequests() async {
   //   loading = true;

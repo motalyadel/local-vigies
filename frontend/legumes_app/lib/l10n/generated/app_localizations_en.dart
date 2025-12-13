@@ -312,10 +312,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknownStatus => 'Unknown';
 
   @override
-  String get accept => 'refuse';
+  String get accept => 'accept';
 
   @override
-  String get reject => ' accept';
+  String get reject => ' refuse';
 
   @override
   String addressLabel(Object location) {
@@ -354,4 +354,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageSendFailed => 'Failed to send message';
+
+  @override
+  String totalProductsCount(Object count) {
+    return '$count product(s)';
+  }
+
+  @override
+  String totalStockKg(Object kg) {
+    return '$kg kg in stock';
+  }
 }

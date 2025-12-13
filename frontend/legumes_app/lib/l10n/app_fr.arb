@@ -124,5 +124,8 @@
   "phonePrefix": "Tél",
   "noMessagesYet": "Aucun message pour le moment",
   "startConversation": "Commencez la conversation !",
-  "messageSendFailed": "Échec de l'envoi du message"
+  "messageSendFailed": "Échec de l'envoi du message",
+
+  "totalProductsCount": "{count} produit(s)",
+  "totalStockKg": "{kg} kg en stock"
 }

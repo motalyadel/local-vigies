@@ -670,13 +670,13 @@ abstract class AppLocalizations {
   /// No description provided for @accept.
   ///
   /// In en, this message translates to:
-  /// **'refuse'**
+  /// **'accept'**
   String get accept;
 
   /// No description provided for @reject.
   ///
   /// In en, this message translates to:
-  /// **' accept'**
+  /// **' refuse'**
   String get reject;
 
   /// No description provided for @addressLabel.
@@ -750,6 +750,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to send message'**
   String get messageSendFailed;
+
+  /// No description provided for @totalProductsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} product(s)'**
+  String totalProductsCount(Object count);
+
+  /// No description provided for @totalStockKg.
+  ///
+  /// In en, this message translates to:
+  /// **'{kg} kg in stock'**
+  String totalStockKg(Object kg);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

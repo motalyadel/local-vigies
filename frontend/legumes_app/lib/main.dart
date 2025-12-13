@@ -44,9 +44,9 @@ class MyApp extends StatelessWidget {
         title: 'LOCAL VIGGIES',
         debugShowCheckedModeBanner: false,
         supportedLocales: const [
+          Locale('fr', 'FR'),
+          Locale('ar', 'MR'),
           Locale('en'),
-          Locale('fr'),
-          Locale('ar'),
         ],
         locale: localeProvider.locale,
         localizationsDelegates: const [

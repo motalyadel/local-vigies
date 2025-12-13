@@ -354,4 +354,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get messageSendFailed => 'Échec de l\'envoi du message';
+
+  @override
+  String totalProductsCount(Object count) {
+    return '$count produit(s)';
+  }
+
+  @override
+  String totalStockKg(Object kg) {
+    return '$kg kg en stock';
+  }
 }

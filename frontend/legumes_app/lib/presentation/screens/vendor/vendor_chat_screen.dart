@@ -158,7 +158,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
       body: _messages.isEmpty
@@ -181,7 +181,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
               onSendPressed: _handleSendPressed,
               user: _vendor,
               theme: DefaultChatTheme(
-                primaryColor: Colors.green,
+                primaryColor: Colors.teal,
                 inputBackgroundColor: Colors.white,
                 inputTextColor: Colors.black87,
                 sentMessageBodyTextStyle: const TextStyle(color: Colors.white),

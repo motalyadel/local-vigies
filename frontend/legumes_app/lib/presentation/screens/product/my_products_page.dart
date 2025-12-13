@@ -26,7 +26,6 @@ class _MyProductsPageState extends State<MyProductsPage> {
     });
   }
 
-  // Dialog rapide pour changer le prix
   Future<void> _showQuickPriceDialog(
       BuildContext context, Product product) async {
     final l10n = AppLocalizations.of(context)!;
@@ -36,41 +35,41 @@ class _MyProductsPageState extends State<MyProductsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(l10n.updatePriceTitle(product.name)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n.updatePriceTitle(product.name),
+            textAlign: TextAlign.center),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           autofocus: true,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              fontSize: 32, fontWeight: FontWeight.bold, color: Colors.teal),
           decoration: InputDecoration(
             hintText: product.price.toStringAsFixed(0),
             suffixText: ' MRU',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(vertical: 20),
           ),
         ),
-        actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child:
-                Text(l10n.cancel, style: const TextStyle(color: Colors.grey)),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton.icon(
-            onPressed: () {
-              final newPrice = double.tryParse(controller.text);
-              if (newPrice != null && newPrice >= 0) {
-                Navigator.pop(ctx, true);
-              }
-            },
             icon: const Icon(Icons.check),
             label: Text(l10n.update),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
+                backgroundColor: Colors.orange,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12))),
+            onPressed: () {
+              final newPrice = double.tryParse(controller.text);
+              if (newPrice != null && newPrice >= 0) Navigator.pop(ctx, true);
+            },
           ),
         ],
       ),
@@ -81,7 +80,6 @@ class _MyProductsPageState extends State<MyProductsPage> {
       final success =
           await Provider.of<ProductManagementController>(context, listen: false)
               .updatePriceDirectly(product.id, newPrice);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -97,26 +95,28 @@ class _MyProductsPageState extends State<MyProductsPage> {
 
   Future<void> _showDeleteDialog(String productId) async {
     final l10n = AppLocalizations.of(context)!;
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(l10n.deleteProduct),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title:
+            Text(l10n.deleteProduct, style: const TextStyle(color: Colors.red)),
         content: Text(l10n.deleteProductConfirm),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.delete),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
-
     if (confirm == true) {
       await Provider.of<ProductManagementController>(context, listen: false)
           .deleteProduct(productId);
@@ -128,12 +128,16 @@ class _MyProductsPageState extends State<MyProductsPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(l10n.myProducts),
+        title: Text(l10n.myProducts,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: l10n.refresh,
             onPressed: () =>
                 Provider.of<ProductManagementController>(context, listen: false)
@@ -141,20 +145,23 @@ class _MyProductsPageState extends State<MyProductsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
-        tooltip: l10n.addProduct,
-        child: const Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddProductPage()),
-          );
+          final result = await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AddProductPage()));
           if (result == true) {
             Provider.of<ProductManagementController>(context, listen: false)
                 .loadProducts();
           }
         },
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add, size: 28),
+        label: Text(l10n.addProduct,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            )),
       ),
       body: Consumer<ProductManagementController>(
         builder: (context, controller, child) {
@@ -168,12 +175,16 @@ class _MyProductsPageState extends State<MyProductsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error, size: 60, color: Colors.red),
+                  Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
                   const SizedBox(height: 16),
-                  Text(controller.error!),
-                  ElevatedButton(
+                  Text(controller.error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
                     onPressed: () => controller.loadProducts(),
-                    child: Text(l10n.retry),
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.retry),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.teal),
                   ),
                 ],
               ),
@@ -182,10 +193,16 @@ class _MyProductsPageState extends State<MyProductsPage> {
 
           if (controller.products.isEmpty) {
             return Center(
-              child: Text(
-                l10n.noProductsAddHint,
-                style: const TextStyle(fontSize: 18, color: Colors.grey),
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inventory_2_outlined,
+                      size: 100, color: Colors.grey[400]),
+                  const SizedBox(height: 24),
+                  Text(l10n.noProductsAddHint,
+                      style: const TextStyle(fontSize: 20, color: Colors.grey),
+                      textAlign: TextAlign.center),
+                ],
               ),
             );
           }
@@ -193,82 +210,139 @@ class _MyProductsPageState extends State<MyProductsPage> {
           return RefreshIndicator(
             onRefresh: controller.loadProducts,
             child: ListView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: controller.products.length,
               itemBuilder: (context, index) {
                 final product = controller.products[index];
 
                 return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: product.imageUrl != null &&
-                              product.imageUrl!.isNotEmpty
-                          ? Image.network(
-                              product.imageUrl!,
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.broken_image, size: 40),
-                              ),
-                            )
-                          : Container(
-                              color: Colors.grey[300],
-                              width: 64,
-                              height: 64,
-                              child: const Icon(Icons.image, size: 40),
+                  elevation: 8,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => _showQuickPriceDialog(context, product),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          // Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: product.imageUrl != null &&
+                                    product.imageUrl!.isNotEmpty
+                                ? Image.network(
+                                    product.imageUrl!,
+                                    width: 90,
+                                    height: 90,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 90,
+                                      height: 90,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.broken_image,
+                                          size: 40, color: Colors.grey),
+                                    ),
+                                  )
+                                : Container(
+                                    width: 90,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    child: const Icon(Icons.image,
+                                        size: 40, color: Colors.grey),
+                                  ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Infos
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.attach_money,
+                                        size: 18, color: Colors.green),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      "${product.price.toStringAsFixed(0)} MRU",
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.inventory,
+                                        size: 18, color: Colors.blue),
+                                    const SizedBox(width: 4),
+                                    Text(l10n.stock(product.quantity),
+                                        style: const TextStyle(fontSize: 15)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n.productDate(DateFormat('dd/MM/yyyy')
+                                      .format(product.date)),
+                                  style: TextStyle(
+                                      color: Colors.grey[600], fontSize: 13),
+                                ),
+                              ],
                             ),
-                    ),
-                    title: Text(product.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.price(product.price.toStringAsFixed(0))),
-                        Text(l10n.stock(product.quantity)),
-                        Text(l10n.productDate(
-                            DateFormat('dd/MM/yyyy').format(product.date))),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.price_change,
-                              color: Colors.orange, size: 28),
-                          tooltip: l10n.updatePrice,
-                          onPressed: () =>
-                              _showQuickPriceDialog(context, product),
-                        ),
-                        PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'edit') {
-                              final updated = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        EditProductPage(product: product)),
-                              );
-                              if (updated == true) controller.loadProducts();
-                            } else if (value == 'delete') {
-                              _showDeleteDialog(product.id);
-                            }
-                          },
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                                value: 'edit', child: Text(l10n.edit)),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text(l10n.delete,
-                                  style: const TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+
+                          // Actions
+                          PopupMenuButton<String>(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                final updated = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            EditProductPage(product: product)));
+                                if (updated == true) controller.loadProducts();
+                              } else if (value == 'delete') {
+                                _showDeleteDialog(product.id);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(children: [
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                    const SizedBox(width: 8),
+                                    Text(l10n.edit)
+                                  ])),
+                              PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(children: [
+                                    const Icon(Icons.delete, color: Colors.red),
+                                    const SizedBox(width: 8),
+                                    Text(l10n.delete)
+                                  ])),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

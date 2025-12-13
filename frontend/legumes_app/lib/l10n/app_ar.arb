@@ -124,5 +124,8 @@
   "phonePrefix": "هاتف",
   "noMessagesYet": "لا توجد رسائل بعد",
   "startConversation": "ابدأ المحادثة!",
-  "messageSendFailed": "فشل إرسال الرسالة"
+  "messageSendFailed": "فشل إرسال الرسالة",
+
+  "totalProductsCount": "{count} منتج",
+  "totalStockKg": "{kg} kg في المخزون"
 }

@@ -107,8 +107,8 @@
   "statusRejected": "Rejected",
   "unknownStatus": "Unknown",
 
-  "accept": "refuse",
-  "reject": " accept",
+  "accept": "accept",
+  "reject": " refuse",
 
   "addressLabel": "Address: {location}",
   "notSpecified": "Not specified",
@@ -124,5 +124,8 @@
   "phonePrefix": "Phone",
   "noMessagesYet": "No messages yet",
   "startConversation": "Start the conversation!",
-  "messageSendFailed": "Failed to send message"
+  "messageSendFailed": "Failed to send message",
+
+  "totalProductsCount": "{count} product(s)",
+  "totalStockKg": "{kg} kg in stock"
 }

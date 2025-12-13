@@ -354,4 +354,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get messageSendFailed => 'فشل إرسال الرسالة';
+
+  @override
+  String totalProductsCount(Object count) {
+    return '$count منتج';
+  }
+
+  @override
+  String totalStockKg(Object kg) {
+    return '$kg kg في المخزون';
+  }
 }
