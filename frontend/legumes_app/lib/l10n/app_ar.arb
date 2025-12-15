@@ -127,5 +127,7 @@
   "messageSendFailed": "فشل إرسال الرسالة",
 
   "totalProductsCount": "{count} منتج",
-  "totalStockKg": "{kg} kg في المخزون"
+  "totalStockKg": "{kg} kg في المخزون",
+
+  "clientsWillContactSoon": "سيتواصل معك عملاؤك قريبًا!"
 }

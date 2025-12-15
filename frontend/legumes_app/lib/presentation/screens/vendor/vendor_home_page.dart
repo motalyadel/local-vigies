@@ -65,22 +65,26 @@ class VendorHomePage extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.person),
-                tooltip: 'Profil / Déconnexion',
+                tooltip: l10n.profileLogout,
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Déconnexion'),
-                      content:
-                          const Text('Voulez-vous vraiment vous déconnecter ?'),
+                      title: Text(l10n.logout),
+                      content: Text(l10n.logoutConfirm),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Annuler'),
+                          child: Text(l10n.cancel),
                         ),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Déconnecter'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade700,
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                          ),
+                          child: Text(l10n.logout),
                         ),
                       ],
                     ),

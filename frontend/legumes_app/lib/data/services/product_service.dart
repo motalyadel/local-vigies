@@ -1,7 +1,8 @@
 // data/services/product_service.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:cross_file/cross_file.dart';
+import 'package:cross_file/cross_file.dart' as cross_file;
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:legumes_app/core/network/api_fetcher.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -55,62 +56,52 @@ class ProductService {
         .toList();
   }
 
-  // ==================== CRÉATION DE PRODUIT ====================
-  Future<bool> createProduct({
-    required String name,
-    required double price,
-    required int quantity,
-    XFile? imageFile,
-    DateTime? date,
-  }) async {
-    String? imageUrl;
-
-    // Upload image dans le dossier product/userId/…
-    if (imageFile != null) {
+// ==================== FONCTION COMMUNE D'UPLOAD (à mettre dans ton service) ====================
+  Future<String?> uploadProductImage(cross_file.XFile imageFile) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final userId = clientSpb.auth.currentUser?.id;
-      if (userId == null) return false;
-
-      String cleanName = imageFile.name
+      final cleanName = imageFile.name
           .replaceAll(RegExp(r'[() ]+'), '_')
           .replaceAll('×', 'x')
           .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '');
 
-      // Extension en minuscule
-      if (cleanName.contains('.')) {
-        final parts = cleanName.split('.');
-        cleanName = '${parts.first}.${parts.last.toLowerCase()}';
-      }
+      final fileName = '${timestamp}_$cleanName';
+      final filePath = 'product/$userId/$fileName';
 
-      final path =
-          'product/$userId/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
+      final bytes = await imageFile.readAsBytes();
 
-      try {
-        if (kIsWeb) {
-          final bytes = await imageFile.readAsBytes();
-          await clientSpb.storage.from('products').uploadBinary(
-                path,
+      // Utilise uploadBinary pour gérer web et mobile correctement
+      final response =
+          await Supabase.instance.client.storage.from('products').uploadBinary(
+                filePath,
                 bytes,
-                fileOptions:
-                    FileOptions(upsert: true, contentType: imageFile.mimeType),
+                fileOptions: FileOptions(upsert: false),
               );
-        } else {
-          await clientSpb.storage.from('products').upload(
-                path,
-                File(imageFile.path),
-                fileOptions:
-                    FileOptions(upsert: true, contentType: imageFile.mimeType),
-              );
-        }
 
-        imageUrl = clientSpb.storage.from('products').getPublicUrl(path);
-        print('Image uploadée → $imageUrl');
-      } catch (e) {
-        print('Échec upload image : $e');
-        return false;
-      }
+      // Si erreur, Supabase lance une exception → on catch
+      final publicUrl = Supabase.instance.client.storage
+          .from('products')
+          .getPublicUrl(filePath);
+
+      print('Image uploadée avec succès : $publicUrl');
+      return publicUrl;
+    } on StorageException catch (e) {
+      print('Erreur Storage : ${e.message}');
+      return null;
+    } catch (e) {
+      print('Erreur inattendue upload : $e');
+      return null;
     }
+  }
 
-    // Envoi au backend
+  Future<bool> createProduct({
+    required String name,
+    required double price,
+    required int quantity,
+    String? imageUrl, // ← On accepte l'URL directement
+    DateTime? date,
+  }) async {
     final body = {
       'name': name,
       'price': price.toString(),
@@ -120,13 +111,22 @@ class ProductService {
     };
 
     final res = await _fetcher.post('product/create', body: body);
-    final success = res.isSuccess && res.data['success'] == true;
 
-    if (!success) print('Création produit échouée → ${res.error}');
-    return success;
+    if (!res.isSuccess) {
+      print('Erreur API création produit : ${res.error}');
+      return false;
+    }
+
+    final data = res.data;
+    if (data is Map && data['success'] == true) {
+      return true;
+    }
+
+    print('Réponse inattendue : $data');
+    return false;
   }
 
-  // ==================== MISE À JOUR ====================
+  // Pour la mise à jour (updateProduct)
   Future<bool> updateProduct(String id, Map<String, dynamic> updates) async {
     final res = await _fetcher.put('product/update/$id', body: updates);
     return res.isSuccess && res.data['success'] == true;
@@ -142,48 +142,6 @@ class ProductService {
     }
 
     return res.data['success'] == true;
-  }
-
-  // Dans data/services/product_service.dart
-  Future<String?> uploadImage(XFile file, String path) async {
-    try {
-      // Nettoyage du nom de fichier
-      String cleanFileName = file.name
-          .replaceAll(RegExp(r'[() ]'), '_') // remplace ( ) et espaces par _
-          .replaceAll('×', 'x') // remplace le × spécial
-          .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'),
-              ''); // supprime tout caractère bizarre
-
-      // Optionnel : tu peux forcer l'extension en minuscule
-      if (cleanFileName.contains('.')) {
-        final parts = cleanFileName.split('.');
-        cleanFileName = '${parts.first}.${parts.last.toLowerCase()}';
-      }
-
-      // Chemin final propre
-      final userId = Supabase.instance.client.auth.currentUser?.id ?? 'unknown';
-      final finalPath =
-          '$userId/${DateTime.now().millisecondsSinceEpoch}_$cleanFileName';
-
-      print('Upload vers: $finalPath');
-
-      if (kIsWeb) {
-        final bytes = await file.readAsBytes();
-        await clientSpb.storage.from('products').uploadBinary(finalPath, bytes,
-            fileOptions: FileOptions(upsert: true, contentType: file.mimeType));
-      } else {
-        await clientSpb.storage.from('products').upload(
-            finalPath, File(file.path),
-            fileOptions: FileOptions(upsert: true, contentType: file.mimeType));
-      }
-
-      final url = clientSpb.storage.from('products').getPublicUrl(finalPath);
-      print('Upload réussi → $url');
-      return url;
-    } catch (e) {
-      print("Échec upload: $e");
-      return null;
-    }
   }
 
   // Nouvelle méthode statique pour parser les nombres

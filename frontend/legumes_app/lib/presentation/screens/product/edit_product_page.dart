@@ -12,6 +12,7 @@ import 'package:cross_file/cross_file.dart' as cross_file;
 
 class EditProductPage extends StatefulWidget {
   final Product product;
+
   const EditProductPage({super.key, required this.product});
 
   @override
@@ -20,11 +21,11 @@ class EditProductPage extends StatefulWidget {
 
 class _EditProductPageState extends State<EditProductPage> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _priceCtrl;
-  late final TextEditingController _quantityCtrl;
+  late TextEditingController _nameCtrl;
+  late TextEditingController _priceCtrl;
+  late TextEditingController _quantityCtrl;
 
-  cross_file.XFile? imageFile;
+  cross_file.XFile? _newPhoto;
   late DateTime _selectedDate;
   bool _loading = false;
 
@@ -43,7 +44,7 @@ class _EditProductPageState extends State<EditProductPage> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => imageFile = picked);
+      setState(() => _newPhoto = picked);
     }
   }
 
@@ -55,42 +56,31 @@ class _EditProductPageState extends State<EditProductPage> {
         Provider.of<ProductManagementController>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
-    try {
-      final success = await controller.updateProduct(
-        id: widget.product.id,
-        name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
-        price: double.tryParse(_priceCtrl.text),
-        quantity: int.tryParse(_quantityCtrl.text),
-        imageFile: imageFile,
-        date: _selectedDate,
-      );
+    final success = await controller.updateProduct(
+      id: widget.product.id,
+      name: _nameCtrl.text.trim(),
+      price: double.tryParse(_priceCtrl.text),
+      quantity: int.tryParse(_quantityCtrl.text),
+      newImageFile: _newPhoto,
+      date: _selectedDate,
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
+    setState(() => _loading = false);
 
+    if (success) {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.productUpdatedSuccess),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+            content: Text(l10n.productUpdatedSuccess),
+            backgroundColor: Colors.green),
       );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("${l10n.productUpdateFailed}: $e"),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(l10n.productUpdateFailed),
+            backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -103,7 +93,7 @@ class _EditProductPageState extends State<EditProductPage> {
       appBar: AppBar(
         title: Text(l10n.editProduct,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-        backgroundColor: const Color.fromRGBO(33, 150, 243, 1),
+        backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -114,7 +104,6 @@ class _EditProductPageState extends State<EditProductPage> {
           key: _formKey,
           child: Column(
             children: [
-              // Photo du produit
               Center(
                 child: Stack(
                   children: [
@@ -125,32 +114,26 @@ class _EditProductPageState extends State<EditProductPage> {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                            color: Colors.blue.withOpacity(0.3), width: 4),
+                            color: Colors.orange.withOpacity(0.3), width: 4),
                         boxShadow: [
                           BoxShadow(
                               color: Colors.black.withOpacity(0.1),
                               blurRadius: 20,
-                              offset: const Offset(0, 10)),
+                              offset: const Offset(0, 10))
                         ],
                       ),
-                      child: imageFile != null
+                      child: _newPhoto != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(26),
-                              child: Image.file(File(imageFile!.path),
+                              child: Image.file(File(_newPhoto!.path),
                                   fit: BoxFit.cover),
                             )
                           : widget.product.imageUrl != null &&
                                   widget.product.imageUrl!.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(26),
-                                  child: Image.network(
-                                    widget.product.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.broken_image,
-                                        size: 80,
-                                        color: Colors.grey),
-                                  ),
+                                  child: Image.network(widget.product.imageUrl!,
+                                      fit: BoxFit.cover),
                                 )
                               : const Icon(Icons.image_rounded,
                                   size: 80, color: Colors.grey),
@@ -160,7 +143,7 @@ class _EditProductPageState extends State<EditProductPage> {
                       bottom: 0,
                       child: FloatingActionButton.small(
                         onPressed: _pickPhoto,
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.orange,
                         child:
                             const Icon(Icons.camera_alt, color: Colors.white),
                       ),
@@ -168,9 +151,7 @@ class _EditProductPageState extends State<EditProductPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-
-              // Nom du produit
+              const SizedBox(height: 40),
               TextFormField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.sentences,
@@ -188,13 +169,11 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.blue, width: 2)),
+                          const BorderSide(color: Colors.orange, width: 2)),
                 ),
                 validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
               ),
               const SizedBox(height: 20),
-
-              // Prix
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: TextInputType.number,
@@ -213,18 +192,15 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.blue, width: 2)),
+                          const BorderSide(color: Colors.orange, width: 2)),
                 ),
-                validator: (v) {
-                  if (v!.trim().isEmpty) return l10n.fieldRequired;
-                  if (double.tryParse(v) == null || double.parse(v) <= 0)
-                    return l10n.invalidPrice;
-                  return null;
-                },
+                validator: (v) => v!.trim().isEmpty ||
+                        double.tryParse(v!) == null ||
+                        double.parse(v!) <= 0
+                    ? l10n.invalidPrice
+                    : null,
               ),
               const SizedBox(height: 20),
-
-              // Quantité
               TextFormField(
                 controller: _quantityCtrl,
                 keyboardType: TextInputType.number,
@@ -243,18 +219,15 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.blue, width: 2)),
+                          const BorderSide(color: Colors.orange, width: 2)),
                 ),
-                validator: (v) {
-                  if (v!.trim().isEmpty) return l10n.fieldRequired;
-                  if (int.tryParse(v) == null || int.parse(v) <= 0)
-                    return l10n.invalidQuantity;
-                  return null;
-                },
+                validator: (v) => v!.trim().isEmpty ||
+                        int.tryParse(v!) == null ||
+                        int.parse(v!) <= 0
+                    ? l10n.invalidQuantity
+                    : null,
               ),
               const SizedBox(height: 20),
-
-              // Date
               ListTile(
                 onTap: () async {
                   final date = await showDatePicker(
@@ -262,12 +235,6 @@ class _EditProductPageState extends State<EditProductPage> {
                     initialDate: _selectedDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
-                    builder: (context, child) => Theme(
-                      data: Theme.of(context).copyWith(
-                          colorScheme:
-                              const ColorScheme.light(primary: Colors.blue)),
-                      child: child!,
-                    ),
                   );
                   if (date != null) setState(() => _selectedDate = date);
                 },
@@ -276,41 +243,35 @@ class _EditProductPageState extends State<EditProductPage> {
                     side: BorderSide(color: Colors.grey[300]!)),
                 tileColor: Colors.white,
                 leading: const Icon(Icons.calendar_today_rounded,
-                    color: Colors.blue),
+                    color: Colors.orange),
                 title: Text(
                     l10n.productDate(
                         DateFormat('dd MMMM yyyy').format(_selectedDate)),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: const Icon(Icons.edit_calendar, color: Colors.blue),
+                trailing: const Icon(Icons.edit_calendar, color: Colors.orange),
               ),
-              const SizedBox(height: 40),
-
-              // Bouton Mettre à jour
+              const SizedBox(height: 50),
               SizedBox(
                 width: double.infinity,
                 height: 60,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(33, 150, 243, 1),
+                    backgroundColor: Colors.orange,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
-                    elevation: 12,
-                    shadowColor: Colors.blue.withOpacity(0.4),
+                    elevation: 15,
                   ),
                   child: _loading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 3)
-                      : Text(
-                          l10n.update,
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(l10n.update,
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
+                              color: Colors.white)),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
             ],
           ),
         ),

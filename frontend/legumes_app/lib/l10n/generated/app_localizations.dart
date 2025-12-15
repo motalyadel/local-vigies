@@ -762,6 +762,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{kg} kg in stock'**
   String totalStockKg(Object kg);
+
+  /// No description provided for @clientsWillContactSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your clients will contact you soon!'**
+  String get clientsWillContactSoon;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

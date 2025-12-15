@@ -993,11 +993,11 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.marketTitle),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.language, color: AppColors.secondary),
+            icon: const Icon(Icons.language, color: Colors.white),
             onPressed: () {
               final current = localeProvider.locale.languageCode;
               final newLocale =
@@ -1085,10 +1085,12 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                     onPressed: () => _showOrderDialog(p),
                                     icon: const Icon(
                                         Icons.shopping_cart_outlined,
-                                        size: 14),
+                                        size: 14,
+                                        color: Colors.white),
                                     label: Text(
                                         AppLocalizations.of(context)!.order,
-                                        style: const TextStyle(fontSize: 9)),
+                                        style: const TextStyle(
+                                            fontSize: 9, color: Colors.white)),
                                     style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.orange,
                                         padding: const EdgeInsets.symmetric(
@@ -1106,10 +1108,12 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                             size: 14),
                                         label: Text(
                                             AppLocalizations.of(context)!.chat,
-                                            style:
-                                                const TextStyle(fontSize: 12)),
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white)),
                                         style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(
                                                 vertical: 8)),
                                       ),

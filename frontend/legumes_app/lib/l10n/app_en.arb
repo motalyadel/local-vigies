@@ -127,5 +127,7 @@
   "messageSendFailed": "Failed to send message",
 
   "totalProductsCount": "{count} product(s)",
-  "totalStockKg": "{kg} kg in stock"
+  "totalStockKg": "{kg} kg in stock",
+
+  "clientsWillContactSoon": "Your clients will contact you soon!"
 }

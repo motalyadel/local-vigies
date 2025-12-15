@@ -1,10 +1,13 @@
 // presentation/controllers/product_management_controller.dart
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:legumes_app/data/models/product_model.dart';
 import 'package:legumes_app/data/services/product_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cross_file/cross_file.dart' as cross_file;
 
 class ProductManagementController extends ChangeNotifier {
   final ProductService _service = ProductService();
@@ -45,22 +48,22 @@ class ProductManagementController extends ChangeNotifier {
   }
 
   Future<int> get pendingRequestsCount async {
-  final vendorId = Supabase.instance.client.auth.currentUser?.id;
-  if (vendorId == null) return 0;
+    final vendorId = Supabase.instance.client.auth.currentUser?.id;
+    if (vendorId == null) return 0;
 
-  try {
-    final response = await Supabase.instance.client
-        .from('product_requests')
-        .select('id')
-        .eq('vendor_id', vendorId)
-        .eq('status', 'pending');
+    try {
+      final response = await Supabase.instance.client
+          .from('product_requests')
+          .select('id')
+          .eq('vendor_id', vendorId)
+          .eq('status', 'pending');
 
-    return response.length;
-  } catch (e) {
-    print("Erreur comptage demandes pending: $e");
-    return 0;
+      return response.length;
+    } catch (e) {
+      print("Erreur comptage demandes pending: $e");
+      return 0;
+    }
   }
-}
 
   // // NOUVELLE MÉTHODE : Charger les demandes du vendeur
   // Future<void> loadRequests() async {
@@ -92,49 +95,12 @@ class ProductManagementController extends ChangeNotifier {
   //   }
   // }
 
-  // Créer un nouveau produit
-  Future<void> createProduct({
+  // ==================== CRÉATION DE PRODUIT ====================
+  Future<bool> createProduct({
     required String name,
     required double price,
     required int quantity,
-    XFile? imageFile, // ← NOUVEAU : on passe le fichier directement
-    DateTime? date,
-  }) async {
-    loading = true;
-    error = null;
-    notifyListeners();
-
-    try {
-      print('debuit creation de produit ');
-      final success = await _service.createProduct(
-        name: name,
-        price: price,
-        quantity: quantity,
-        imageFile: imageFile, // ← On passe le XFile ici
-        date: date,
-      );
-
-      if (success) {
-        await loadProducts(); // Recharge la liste
-      } else {
-        throw Exception('Échec de la création du produit');
-      }
-    } catch (e) {
-      error = 'Impossible de créer le produit : $e';
-      print('Erreur création produit : $e');
-    } finally {
-      loading = false;
-      notifyListeners();
-    }
-  }
-
-  // Mettre à jour un produit
-  Future<void> updateProduct({
-    required String id,
-    String? name,
-    double? price,
-    int? quantity,
-    XFile? imageFile, // ← Permet de changer la photo
+    cross_file.XFile? imageFile,
     DateTime? date,
   }) async {
     loading = true;
@@ -143,34 +109,110 @@ class ProductManagementController extends ChangeNotifier {
 
     try {
       String? imageUrl;
+
+      // Upload de l'image si fournie
       if (imageFile != null) {
-        final fileName =
-            '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
-        imageUrl = await ProductService().uploadImage(imageFile, fileName);
-        if (imageUrl == null) throw Exception("Échec de l'upload de l'image");
+        imageUrl = await _service.uploadProductImage(imageFile);
+        if (imageUrl == null) {
+          error = "Échec de l'upload de la photo";
+          return false;
+        }
       }
 
-      final Map<String, dynamic> updates = {};
-      if (name != null) updates['name'] = name;
-      if (price != null) updates['price'] = price.toString();
-      if (quantity != null) updates['quantity'] = quantity.toString();
-      if (imageUrl != null) updates['image_url'] = imageUrl;
-      if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
-
-      final success = await _service.updateProduct(id, updates);
+      // Appel au service/backend
+      final success = await _service.createProduct(
+        name: name,
+        price: price,
+        quantity: quantity,
+        imageUrl: imageUrl,
+        date: date,
+      );
 
       if (success) {
-        await loadProducts();
-      } else {
-        throw Exception('Échec de la mise à jour');
+        await loadProducts(); // Recharge la liste
       }
+
+      return success;
     } catch (e) {
-      error = 'Erreur mise à jour : $e';
+      error = 'Impossible de créer le produit : $e';
+      return false;
     } finally {
       loading = false;
       notifyListeners();
     }
   }
+
+  // Mise à jour de produit avec upload photo si nouvelle
+  Future<bool> updateProduct({
+    required String id,
+    String? name,
+    double? price,
+    int? quantity,
+    cross_file.XFile? newImageFile,
+    DateTime? date,
+  }) async {
+    loading = true;
+    notifyListeners();
+
+    String? newImageUrl;
+    if (newImageFile != null) {
+      newImageUrl = await _service.uploadProductImage(newImageFile);
+      if (newImageUrl == null) {
+        error = "Échec de l'upload de la nouvelle photo";
+        loading = false;
+        notifyListeners();
+        return false;
+      }
+    }
+
+    final updates = <String, dynamic>{};
+    if (name != null && name.trim().isNotEmpty) updates['name'] = name.trim();
+    if (price != null) updates['price'] = price;
+    if (quantity != null) updates['quantity'] = quantity;
+    if (newImageUrl != null) updates['image_url'] = newImageUrl;
+    if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
+
+    if (updates.isEmpty) {
+      loading = false;
+      notifyListeners();
+      return true;
+    }
+
+    final success = await _service.updateProduct(id, updates);
+    if (success) await loadProducts();
+
+    loading = false;
+    notifyListeners();
+    return success;
+  }
+
+  // // Upload photo commune (utilisée par create et update)
+  // Future<String?> _uploadImage(cross_file.XFile imageFile) async {
+  //   try {
+  //     final timestamp = DateTime.now().millisecondsSinceEpoch;
+  //     final fileName = '${timestamp}_${imageFile.name}';
+  //     final filePath = 'products/$fileName';
+
+  //     final response = await Supabase.instance.client.storage
+  //         .from('products')
+  //         .upload(filePath, (await imageFile.readAsBytes()) as File);
+
+  //     if (response.error != null) {
+  //       print('Erreur upload Storage : ${response.error!.message}');
+  //       return null;
+  //     }
+
+  //     return Supabase.instance.client.storage
+  //         .from('products')
+  //         .getPublicUrl(filePath);
+  //   } on StorageException catch (e) {
+  //     print('Erreur Storage : ${e.message}');
+  //     return null;
+  //   } catch (e) {
+  //     print('Exception upload : $e');
+  //     return null;
+  //   }
+  // }
 
   Future<bool> updatePriceDirectly(String productId, double newPrice) async {
     loading = true;

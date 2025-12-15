@@ -364,4 +364,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String totalStockKg(Object kg) {
     return '$kg kg en stock';
   }
+
+  @override
+  String get clientsWillContactSoon => 'Vos clients vous contacteront bientôt !';
 }

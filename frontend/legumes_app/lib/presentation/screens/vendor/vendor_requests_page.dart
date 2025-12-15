@@ -177,7 +177,7 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                             fontWeight: FontWeight.w600,
                             color: Colors.grey)),
                     const SizedBox(height: 16),
-                    Text("Vos clients vous contacteront bientôt !",
+                    Text(l10n.clientsWillContactSoon,
                         style: TextStyle(color: Colors.grey[600]),
                         textAlign: TextAlign.center),
                   ],
