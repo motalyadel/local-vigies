@@ -664,76 +664,122 @@ app.get("/product/vendor/:id", async ({ params, headers, set }) => {
   return { success: true, products: data || [] };
 });
 
-// === 3. Mettre à jour un produit (seul le propriétaire) ===
-app.put("/product/update/:id", async ({ params, body, headers, set }) => {
+// === MISE À JOUR PRODUIT ===
+app.put("/product/update/:id", async ({ params, headers, set, request }) => {
   const { id } = params;
-
-  // === Authentification ===
   const token = headers.authorization?.replace("Bearer ", "");
+
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser(token);
+
   if (authError || !user) {
     set.status = 401;
     return { success: false, error: "Unauthorized" };
   }
 
-  // === Vérifier que le produit appartient au vendeur ===
-  const { data: product, error: fetchError } = await supabase
+  // Lecture et typage du body
+  const rawBody = await request.json();
+  const body = rawBody as Record<string, any>;
+
+  // Récupérer le produit actuel pour l'ancienne image_url
+  const { data: currentProduct, error: fetchError } = await supabase
     .from("products")
-    .select("vendor_id")
+    .select("vendor_id, image_url")
     .eq("id", id)
     .single();
 
-  if (fetchError || !product) {
+  if (fetchError || !currentProduct) {
     set.status = 404;
     return { success: false, error: "Produit non trouvé" };
   }
 
-  const isOwner = product.vendor_id === user.id;
-  const isAdmin = user.user_metadata?.roles?.includes("admin") || false;
-  if (!isOwner && !isAdmin) {
+  // Vérification propriétaire ou admin
+  if (
+    currentProduct.vendor_id !== user.id &&
+    !user.user_metadata?.roles?.includes("admin")
+  ) {
     set.status = 403;
     return { success: false, error: "Accès refusé" };
   }
 
-  // === Nettoyage et validation du body (corrige l'erreur TS) ===
-  const updates: Record<string, any> = {};
-  if (typeof body === "object" && body !== null) {
-    const b = body as any;
-    if (b.name !== undefined) updates.name = String(b.name).trim();
-    if (b.price !== undefined) {
-      const p = parseFloat(b.price);
-      if (!isNaN(p)) updates.price = p;
-    }
-    if (b.quantity !== undefined) {
-      const q = parseInt(b.quantity);
-      if (!isNaN(q)) updates.quantity = q;
-    }
-    if (b.image_url !== undefined) updates.image_url = b.image_url || null;
-    if (b.date !== undefined) updates.date = b.date;
-  }
+  // === Suppression de l'ancienne photo si nouvelle image envoyée ===
+  let storageErrorMsg = null;
+  const newImageUrl = body.image_url;
 
-  if (Object.keys(updates).length === 0) {
-    set.status = 400;
-    return { success: false, error: "Aucune donnée à mettre à jour" };
+  if (
+    currentProduct.image_url &&
+    newImageUrl &&
+    newImageUrl !== currentProduct.image_url
+  ) {
+    try {
+      const urlParts = currentProduct.image_url.split(
+        "/storage/v1/object/public/products/"
+      );
+      if (urlParts.length > 1) {
+        const oldFilePath = urlParts[1];
+
+        console.log("Suppression ancienne photo :", oldFilePath);
+
+        const { error } = await supabase.storage
+          .from("products")
+          .remove([oldFilePath]);
+
+        if (error) {
+          console.error("Erreur suppression photo :", error);
+          storageErrorMsg = error.message;
+        } else {
+          console.log("Ancienne photo supprimée avec succès");
+        }
+      }
+    } catch (e) {
+      console.error("Exception suppression photo :", e);
+      storageErrorMsg = "Erreur suppression ancienne photo";
+    }
   }
 
   // === Mise à jour ===
-  const { data, error } = await supabase
-    .from("products")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single();
+  const updates: Record<string, any> = {
+    ...body,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) {
-    set.status = 400;
-    return { success: false, error: error.message };
+  // Nettoyer les champs vides
+  Object.keys(updates).forEach((key) => {
+    if (
+      updates[key] === "" ||
+      updates[key] === null ||
+      updates[key] === undefined
+    ) {
+      delete updates[key];
+    }
+  });
+
+  if (Object.keys(updates).length === 0) {
+    return {
+      success: true,
+      message: "Aucune modification",
+      storage_warning: storageErrorMsg,
+    };
   }
 
-  return { success: true, product: data };
+  const { error: updateError } = await supabase
+    .from("products")
+    .update(updates)
+    .eq("id", id);
+
+  if (updateError) {
+    set.status = 500;
+    return { success: false, error: updateError.message };
+  }
+
+  return {
+    success: true,
+    message: "Produit mis à jour avec succès",
+    old_image_deleted: !storageErrorMsg,
+    storage_warning: storageErrorMsg,
+  };
 });
 
 // === 4. Supprimer un produit (seul le propriétaire) ===
@@ -745,6 +791,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser(token);
+
   if (authError || !user) {
     set.status = 401;
     return { success: false, error: "Unauthorized" };
@@ -753,7 +800,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
   // Vérifie que c'est bien son produit (ou admin)
   const { data: product, error: fetchError } = await supabase
     .from("products")
-    .select("vendor_id")
+    .select("vendor_id, image_url") // On récupère image_url
     .eq("id", id)
     .single();
 
@@ -770,7 +817,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
     return { success: false, error: "Accès refusé" };
   }
 
-  // ÉTAPE CLÉ : On vérifie s'il y a des messages liés
+  // Vérifie s'il y a des messages liés
   const { count, error: countError } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
@@ -778,10 +825,47 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
 
   if (countError) {
     set.status = 500;
-    return { success: false, error: "Erreur serveur" };
+    return {
+      success: false,
+      error: "Erreur serveur lors du comptage des messages",
+    };
   }
 
-  // S'IL Y A DES MESSAGES → SOFT DELETE (on masque)
+  // === Suppression de la photo dans Storage (dans les deux cas) ===
+  let storageError = null;
+  if (product.image_url) {
+    try {
+      // Extraction du chemin du fichier depuis l'URL
+      console.log("URL de l'image à supprimer :", product.image_url); // Log pour debug
+      const urlParts = product.image_url.split(
+        "/storage/v1/object/public/products/"
+      );
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1]; // ex : "abc123.jpg"
+        console.log("Chemin du fichier à supprimer :", filePath); // Log pour debug
+
+        const { error } = await supabase.storage
+          .from("products") // Nom de ton bucket
+          .remove([filePath]);
+
+        if (error) {
+          console.error("Erreur suppression photo Storage:", error);
+          storageError = error.message;
+        } else {
+          console.log("Photo supprimée avec succès dans Storage :", filePath);
+        }
+      } else {
+        console.log("Format d'URL invalide, pas de suppression photo");
+      }
+    } catch (e) {
+      console.error("Exception lors de la suppression Storage:", e);
+      storageError = "Erreur inattendue lors de la suppression de l'image";
+    }
+  } else {
+    console.log("Pas d'image à supprimer pour ce produit");
+  }
+
+  // === CAS 1 : Il y a des messages → SOFT DELETE ===
   if (count && count > 0) {
     const { error } = await supabase
       .from("products")
@@ -793,25 +877,26 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
       .eq("id", id);
 
     if (error) {
-      set.status = 400;
+      set.status = 500;
       return { success: false, error: error.message };
     }
 
     return {
       success: true,
-      message: "Produit archivé (il a des messages)",
+      message: "Produit archivé (présence de messages)",
       soft_deleted: true,
+      storage_error: storageError,
     };
   }
 
-  // S'IL N'Y A PAS DE MESSAGES → SUPPRESSION TOTALE
+  // === CAS 2 : Aucun message → SUPPRESSION TOTALE ===
   const { error: deleteError } = await supabase
     .from("products")
     .delete()
     .eq("id", id);
 
   if (deleteError) {
-    set.status = 400;
+    set.status = 500;
     return { success: false, error: deleteError.message };
   }
 
@@ -819,6 +904,7 @@ app.delete("/product/delete/:id", async ({ params, headers, set }) => {
     success: true,
     message: "Produit supprimé définitivement",
     soft_deleted: false,
+    storage_error: storageError,
   };
 });
 
