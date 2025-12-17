@@ -877,106 +877,175 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
     );
   }
 
-  Future<void> _showOrderDialog(Product product) async {
+  Future<void> _sendRequest(
+      Product product, int quantity, String address) async {
     final l10n = AppLocalizations.of(context)!;
-    // Si le consumer n'est pas encore créé → on le force à remplir ses infos
-    if (_consumerId == null) {
-      await _showConsumerForm(() => _showOrderDialog(product));
+
+    // Récupérer l'ID du consommateur depuis le stockage local
+    final String? consumerId = await ConsumerLocalService.getConsumerId();
+
+    if (consumerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorConsumerNotFound),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    final quantityCtrl = TextEditingController();
+    try {
+      // Insérer la demande dans la table product_requests
+      final response =
+          await Supabase.instance.client.from('product_requests').insert({
+        'consumer_id': consumerId,
+        'vendor_id': product.vendorId,
+        'product_id': product.id,
+        'product_name': product.name,
+        'quantity': quantity,
+        'price_at_request': product.price,
+        'customer_location':
+            address.trim().isEmpty ? 'Non précisée' : address.trim(),
+        'vendor_shop_name': product.vendorShopName ?? 'Boutique',
+      });
+
+      // CORRECTION : Supabase insert() retourne null en succès, ou lance une exception en erreur
+      // Donc on ne fait pas response.error → on catch l'exception
+      // Si on arrive ici → succès !
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.requestSentSuccess(product.name, quantity)),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Optionnel : ouvrir le chat directement après la demande
+      // Navigator.push(...);
+    } on PostgrestException catch (e) {
+      print("Erreur Supabase envoi demande : ${e.message}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.requestSentFailed),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print("Erreur inattendue envoi demande : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.requestSentFailed),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showOrderDialog(Product product) async {
+    final l10n = AppLocalizations.of(context)!;
+    final quantityController = TextEditingController();
     final addressCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    // State pour forcer le rebuild quand la quantité change
+    int currentQuantity = 10; // valeur initiale
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.orderProduct(product.name)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.pricePerKg(product.price.toStringAsFixed(0))),
-            const SizedBox(height: 16),
-            TextField(
-              controller: quantityCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: l10n.quantityKg,
-                hintText: "",
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(l10n.requestProduct(product.name)),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Message quantité minimale
+                Text(
+                  l10n.minQuantityWarning,
+                  style: const TextStyle(
+                      color: Colors.orange, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+
+                // Affichage du prix total (dynamique)
+                Text(
+                  "${l10n.totalPrice}: ${(currentQuantity * product.price).toStringAsFixed(0)} MRU",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Champ quantité
+                TextFormField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.quantityKg,
+                    suffixText: ' kg',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onChanged: (value) {
+                    final qty = int.tryParse(value) ?? 10;
+                    setStateDialog(() {
+                      currentQuantity = qty < 10
+                          ? 10
+                          : qty; // ne descend pas en dessous de 10
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return l10n.fieldRequired;
+                    final qty = int.tryParse(value);
+                    if (qty == null || qty < 10) return l10n.minQuantityError;
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Adresse
+                TextFormField(
+                  controller: addressCtrl,
+                  decoration: InputDecoration(
+                    labelText: l10n.deliveryAddress,
+                    hintText: "",
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: addressCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.deliveryAddress,
-                hintText: "",
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: Text(l10n.request),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final qty = double.tryParse(quantityCtrl.text.trim());
-              if (qty != null &&
-                  qty > 0 &&
-                  addressCtrl.text.trim().isNotEmpty) {
-                Navigator.pop(ctx, true);
-              } else {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text(l10n.fillFields)),
-                );
-              }
-            },
-            child: Text(l10n.order),
-          ),
-        ],
       ),
     );
 
-    if (result != true) return;
-
-    final quantity = double.tryParse(quantityCtrl.text.trim()) ?? 0;
-    final address = addressCtrl.text.trim();
-
-    // ENVOI DE LA COMMANDE (les deux cas arrivent ici)
-    try {
-      await Supabase.instance.client.from('product_requests').insert({
-        'product_id': product.id,
-        'product_name': product.name,
-        'vendor_id': product.vendorId,
-        'consumer_id': _consumerId,
-        'quantity': double.tryParse(quantityCtrl.text) ?? 1,
-        'price_at_request': product.price,
-        // 'customer_name': nameCtrl.text.trim(),
-        // 'customer_phone': phoneCtrl.text.trim(),
-        'vendor_shop_name': product.vendorShopName ?? 'Boutique',
-        'customer_location': locationCtrl.text.trim(),
-        'status': 'pending',
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.orderSent),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("${l10n.orderFailed}: $e"),
-              backgroundColor: Colors.red),
-        );
-        print("error : $e");
-      }
+    if (result == true) {
+      final quantity = int.tryParse(quantityController.text) ?? 10;
+      final address = addressCtrl.text;
+      await _sendRequest(product, quantity, address);
     }
   }
 
@@ -1072,7 +1141,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                                     fontWeight: FontWeight.bold, fontSize: 15),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
-                            Text("${p.price.toStringAsFixed(0)} MRU",
+                            Text("${p.price.toStringAsFixed(0)} MRU/kg",
                                 style: const TextStyle(
                                     color: Colors.green,
                                     fontSize: 16,

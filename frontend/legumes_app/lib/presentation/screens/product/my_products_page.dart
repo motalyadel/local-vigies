@@ -275,9 +275,6 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    const Icon(Icons.attach_money,
-                                        size: 18, color: Colors.green),
-                                    const SizedBox(width: 4),
                                     Text(
                                       "${product.price.toStringAsFixed(0)} MRU",
                                       style: const TextStyle(

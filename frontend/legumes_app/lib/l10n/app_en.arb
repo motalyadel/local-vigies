@@ -5,7 +5,7 @@
   "email": "Email",
   "password": "Password",
   "login": "Login",
-  "connexionAuMarche": "Login to Vegetable Market 🥕",
+  "connexionAuMarche": "Login to Kheir 🥕",
   "register": "Sign Up",
   "noAccount": "Don't have an account? Sign up",
   "haveAccount": "Already have an account? Login",
@@ -20,7 +20,7 @@
   "invalidNom": "Name too short (min 3 characters)",
   "invalidPhone": "Invalid phone number",
   "loading": "Loading...",
-  "marketTitle": "Local Market",
+  "marketTitle": "Kheir Market",
   "tagline": "The best products near you",
   "allProducts": "All Products",
   "myProducts": "My Products",
@@ -129,5 +129,14 @@
   "totalProductsCount": "{count} product(s)",
   "totalStockKg": "{kg} kg in stock",
 
-  "clientsWillContactSoon": "Your clients will contact you soon!"
+  "clientsWillContactSoon": "Your clients will contact you soon!",
+  
+  "requestProduct": "Request {product}",
+  "request": "Request",
+  "totalPrice": "Total Price",
+  "minQuantityWarning": "Minimum quantity for a request is 10 kg",
+  "minQuantityError": "Quantity must be at least 10 kg",
+  "requestSentSuccess": "Request for {quantity} kg of {product} sent successfully!",
+  "requestSentFailed": "Failed to send request",
+  "errorConsumerNotFound": "Error: Consumer not identified"
 }

@@ -93,7 +93,7 @@ class _EditProductPageState extends State<EditProductPage> {
       appBar: AppBar(
         title: Text(l10n.editProduct,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-        backgroundColor: Colors.orange,
+        backgroundColor: const Color.fromARGB(0, 136, 150, 150).withOpacity(1),
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -114,7 +114,7 @@ class _EditProductPageState extends State<EditProductPage> {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                            color: Colors.orange.withOpacity(0.3), width: 4),
+                            color: Color.fromARGB(0, 136, 150, 150).withOpacity(0.3), width: 4),
                         boxShadow: [
                           BoxShadow(
                               color: Colors.black.withOpacity(0.1),
@@ -143,7 +143,7 @@ class _EditProductPageState extends State<EditProductPage> {
                       bottom: 0,
                       child: FloatingActionButton.small(
                         onPressed: _pickPhoto,
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Color.fromARGB(0, 136, 150, 150),
                         child:
                             const Icon(Icons.camera_alt, color: Colors.white),
                       ),
@@ -169,7 +169,7 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.orange, width: 2)),
+                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
                 ),
                 validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
               ),
@@ -192,7 +192,7 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.orange, width: 2)),
+                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
                 ),
                 validator: (v) => v!.trim().isEmpty ||
                         double.tryParse(v!) == null ||
@@ -219,7 +219,7 @@ class _EditProductPageState extends State<EditProductPage> {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide:
-                          const BorderSide(color: Colors.orange, width: 2)),
+                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
                 ),
                 validator: (v) => v!.trim().isEmpty ||
                         int.tryParse(v!) == null ||
@@ -243,12 +243,12 @@ class _EditProductPageState extends State<EditProductPage> {
                     side: BorderSide(color: Colors.grey[300]!)),
                 tileColor: Colors.white,
                 leading: const Icon(Icons.calendar_today_rounded,
-                    color: Colors.orange),
+                    color: Colors.teal),
                 title: Text(
                     l10n.productDate(
                         DateFormat('dd MMMM yyyy').format(_selectedDate)),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: const Icon(Icons.edit_calendar, color: Colors.orange),
+                trailing: const Icon(Icons.edit_calendar, color: Colors.teal),
               ),
               const SizedBox(height: 50),
               SizedBox(
@@ -257,10 +257,10 @@ class _EditProductPageState extends State<EditProductPage> {
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: Color.fromARGB(0, 136, 150, 150),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
-                    elevation: 15,
+                    elevation: 8,
                   ),
                   child: _loading
                       ? const CircularProgressIndicator(color: Colors.white)
@@ -268,7 +268,7 @@ class _EditProductPageState extends State<EditProductPage> {
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white)),
+                              color: Colors.black)),
                 ),
               ),
               const SizedBox(height: 30),

@@ -124,7 +124,7 @@ abstract class AppLocalizations {
   /// No description provided for @connexionAuMarche.
   ///
   /// In en, this message translates to:
-  /// **'Login to Vegetable Market 🥕'**
+  /// **'Login to Kheir 🥕'**
   String get connexionAuMarche;
 
   /// No description provided for @register.
@@ -214,7 +214,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketTitle.
   ///
   /// In en, this message translates to:
-  /// **'Local Market'**
+  /// **'Kheir Market'**
   String get marketTitle;
 
   /// No description provided for @tagline.
@@ -768,6 +768,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your clients will contact you soon!'**
   String get clientsWillContactSoon;
+
+  /// No description provided for @requestProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Request {product}'**
+  String requestProduct(Object product);
+
+  /// No description provided for @request.
+  ///
+  /// In en, this message translates to:
+  /// **'Request'**
+  String get request;
+
+  /// No description provided for @totalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price'**
+  String get totalPrice;
+
+  /// No description provided for @minQuantityWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum quantity for a request is 10 kg'**
+  String get minQuantityWarning;
+
+  /// No description provided for @minQuantityError.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity must be at least 10 kg'**
+  String get minQuantityError;
+
+  /// No description provided for @requestSentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Request for {quantity} kg of {product} sent successfully!'**
+  String requestSentSuccess(Object product, Object quantity);
+
+  /// No description provided for @requestSentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send request'**
+  String get requestSentFailed;
+
+  /// No description provided for @errorConsumerNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Consumer not identified'**
+  String get errorConsumerNotFound;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

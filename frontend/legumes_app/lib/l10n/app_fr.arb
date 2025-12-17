@@ -5,7 +5,7 @@
   "email": "Email",
   "password": "Mot de passe",
   "login": "Se connecter",
-  "connexionAuMarche": "Connexion au Marché Légumes 🥕",
+  "connexionAuMarche": "Connexion Kheir 🥕",
   "register": "S'inscrire",
   "noAccount": "Pas encore de compte ? S’inscrire",
   "haveAccount": "Vous avez déjà un compte ? Se connecter",
@@ -20,7 +20,7 @@
   "invalidNom": "Nom trop court (minimum 3 caractères)",
   "invalidPhone": "Numéro de téléphone invalide",
   "loading": "Chargement...",
-  "marketTitle": "Marché Local",
+  "marketTitle": "Marché Kheir",
   "tagline": "Les meilleurs produits près de chez vous",
   "allProducts": "Tous les produits",
   "myProducts": "Mes produits",
@@ -58,7 +58,7 @@
   "myRequests": "Mes demandes",
   "lastUpdate": "Dernière mise à jour",
 
-  "chat": "Messagerie",
+  "chat": "chat",
   "noMessages": "Aucun message",
   "typeMessage": "Écrivez votre message...",
 
@@ -129,5 +129,14 @@
   "totalProductsCount": "{count} produit(s)",
   "totalStockKg": "{kg} kg en stock",
 
-  "clientsWillContactSoon": "Vos clients vous contacteront bientôt !"
+  "clientsWillContactSoon": "Vos clients vous contacteront bientôt !",
+
+  "requestProduct": "Demander {product}",
+  "request": "Demander",
+  "totalPrice": "Prix total",
+  "minQuantityWarning": "La quantité minimale pour une demande est de 10 kg",
+  "minQuantityError": "La quantité doit être d'au moins 10 kg",
+  "requestSentSuccess": "Demande de {quantity} kg de {product} envoyée !",
+  "requestSentFailed": "Échec de l'envoi de la demande",
+  "errorConsumerNotFound": "Erreur : consommateur non identifié"
 }

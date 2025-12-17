@@ -19,7 +19,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get login => 'تسجيل الدخول';
 
   @override
-  String get connexionAuMarche => 'تسجيل في سوق الخضار 🥕';
+  String get connexionAuMarche => 'تسجيل في خير 🥕';
 
   @override
   String get register => 'إنشاء حساب';
@@ -64,7 +64,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loading => 'جاري التحميل...';
 
   @override
-  String get marketTitle => 'سوق محلي';
+  String get marketTitle => 'سوق خير';
 
   @override
   String get tagline => 'أفضل المنتجات قريبة منك';
@@ -367,4 +367,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get clientsWillContactSoon => 'سيتواصل معك عملاؤك قريبًا!';
+
+  @override
+  String requestProduct(Object product) {
+    return 'طلب $product';
+  }
+
+  @override
+  String get request => 'طلب';
+
+  @override
+  String get totalPrice => 'السعر الإجمالي';
+
+  @override
+  String get minQuantityWarning => 'الكمية الدنيا للطلب هي 10 كجم';
+
+  @override
+  String get minQuantityError => 'يجب أن تكون الكمية 10 كجم على الأقل';
+
+  @override
+  String requestSentSuccess(Object product, Object quantity) {
+    return 'تم إرسال طلب $quantity كجم من $product بنجاح!';
+  }
+
+  @override
+  String get requestSentFailed => 'فشل إرسال الطلب';
+
+  @override
+  String get errorConsumerNotFound => 'خطأ: المستهلك غير معروف';
 }

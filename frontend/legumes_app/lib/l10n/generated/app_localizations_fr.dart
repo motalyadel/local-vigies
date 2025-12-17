@@ -19,7 +19,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get login => 'Se connecter';
 
   @override
-  String get connexionAuMarche => 'Connexion au Marché Légumes 🥕';
+  String get connexionAuMarche => 'Connexion Kheir 🥕';
 
   @override
   String get register => 'S\'inscrire';
@@ -64,7 +64,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loading => 'Chargement...';
 
   @override
-  String get marketTitle => 'Marché Local';
+  String get marketTitle => 'Marché Kheir';
 
   @override
   String get tagline => 'Les meilleurs produits près de chez vous';
@@ -170,7 +170,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lastUpdate => 'Dernière mise à jour';
 
   @override
-  String get chat => 'Messagerie';
+  String get chat => 'chat';
 
   @override
   String get noMessages => 'Aucun message';
@@ -367,4 +367,32 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get clientsWillContactSoon => 'Vos clients vous contacteront bientôt !';
+
+  @override
+  String requestProduct(Object product) {
+    return 'Demander $product';
+  }
+
+  @override
+  String get request => 'Demander';
+
+  @override
+  String get totalPrice => 'Prix total';
+
+  @override
+  String get minQuantityWarning => 'La quantité minimale pour une demande est de 10 kg';
+
+  @override
+  String get minQuantityError => 'La quantité doit être d\'au moins 10 kg';
+
+  @override
+  String requestSentSuccess(Object product, Object quantity) {
+    return 'Demande de $quantity kg de $product envoyée !';
+  }
+
+  @override
+  String get requestSentFailed => 'Échec de l\'envoi de la demande';
+
+  @override
+  String get errorConsumerNotFound => 'Erreur : consommateur non identifié';
 }

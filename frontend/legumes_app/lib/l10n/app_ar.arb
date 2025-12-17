@@ -5,7 +5,7 @@
   "email": "البريد الإلكتروني",
   "password": "كلمة المرور",
   "login": "تسجيل الدخول",
-  "connexionAuMarche": "تسجيل في سوق الخضار 🥕",
+  "connexionAuMarche": "تسجيل في خير 🥕",
   "register": "إنشاء حساب",
   "noAccount": "ليس لديك حساب؟ اشترك الآن",
   "haveAccount": "لديك حساب بالفعل؟ تسجيل الدخول",
@@ -20,7 +20,7 @@
   "invalidNom": "الاسم قصير جداً (3 أحرف على الأقل)",
   "invalidPhone": "رقم الهاتف غير صالح",
   "loading": "جاري التحميل...",
-  "marketTitle": "سوق محلي",
+  "marketTitle": "سوق خير",
   "tagline": "أفضل المنتجات قريبة منك",
   "allProducts": "جميع المنتجات",
   "myProducts": "منتجاتي",
@@ -129,5 +129,14 @@
   "totalProductsCount": "{count} منتج",
   "totalStockKg": "{kg} kg في المخزون",
 
-  "clientsWillContactSoon": "سيتواصل معك عملاؤك قريبًا!"
+  "clientsWillContactSoon": "سيتواصل معك عملاؤك قريبًا!",
+
+  "requestProduct": "طلب {product}",
+  "request": "طلب",
+  "totalPrice": "السعر الإجمالي",
+  "minQuantityWarning": "الكمية الدنيا للطلب هي 10 كجم",
+  "minQuantityError": "يجب أن تكون الكمية 10 كجم على الأقل",
+  "requestSentSuccess": "تم إرسال طلب {quantity} كجم من {product} بنجاح!",
+  "requestSentFailed": "فشل إرسال الطلب",
+  "errorConsumerNotFound": "خطأ: المستهلك غير معروف"
 }

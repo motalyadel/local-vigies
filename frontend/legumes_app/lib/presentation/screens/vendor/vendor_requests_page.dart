@@ -227,20 +227,20 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        width: 60,
-                                        height: 60,
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.teal),
-                                        ),
-                                      );
-                                    },
+                                    // loadingBuilder:
+                                    //     (context, child, loadingProgress) {
+                                    //   if (loadingProgress == null) return child;
+                                    //   return Container(
+                                    //     width: 60,
+                                    //     height: 60,
+                                    //     color: Colors.grey[200],
+                                    //     child: const Center(
+                                    //       child: CircularProgressIndicator(
+                                    //           strokeWidth: 2,
+                                    //           color: Colors.teal),
+                                    //     ),
+                                    //   );
+                                    // },
                                     errorBuilder: (_, __, ___) => Container(
                                       width: 60,
                                       height: 60,

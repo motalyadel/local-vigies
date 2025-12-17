@@ -137,15 +137,15 @@ class AllProductsPage extends StatelessWidget {
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                          color: Colors.grey[200],
-                                          child: const Center(
-                                              child: CircularProgressIndicator(
-                                                  color: Colors.blue)));
-                                    },
+                                    // loadingBuilder:
+                                    //     (context, child, loadingProgress) {
+                                    //   if (loadingProgress == null) return child;
+                                    //   return Container(
+                                    //       color: Colors.grey[200],
+                                    //       child: const Center(
+                                    //           child: CircularProgressIndicator(
+                                    //               color: Colors.blue)));
+                                    // },
                                     errorBuilder: (_, __, ___) => Container(
                                       width: 100,
                                       height: 100,

@@ -19,7 +19,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get login => 'Login';
 
   @override
-  String get connexionAuMarche => 'Login to Vegetable Market 🥕';
+  String get connexionAuMarche => 'Login to Kheir 🥕';
 
   @override
   String get register => 'Sign Up';
@@ -64,7 +64,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading...';
 
   @override
-  String get marketTitle => 'Local Market';
+  String get marketTitle => 'Kheir Market';
 
   @override
   String get tagline => 'The best products near you';
@@ -367,4 +367,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsWillContactSoon => 'Your clients will contact you soon!';
+
+  @override
+  String requestProduct(Object product) {
+    return 'Request $product';
+  }
+
+  @override
+  String get request => 'Request';
+
+  @override
+  String get totalPrice => 'Total Price';
+
+  @override
+  String get minQuantityWarning => 'Minimum quantity for a request is 10 kg';
+
+  @override
+  String get minQuantityError => 'Quantity must be at least 10 kg';
+
+  @override
+  String requestSentSuccess(Object product, Object quantity) {
+    return 'Request for $quantity kg of $product sent successfully!';
+  }
+
+  @override
+  String get requestSentFailed => 'Failed to send request';
+
+  @override
+  String get errorConsumerNotFound => 'Error: Consumer not identified';
 }
