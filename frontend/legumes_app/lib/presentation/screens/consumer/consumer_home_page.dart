@@ -170,7 +170,7 @@
 //                 Text("${product.price.toStringAsFixed(0)} MRU/kg",
 //                     style: const TextStyle(
 //                         fontSize: 20,
-//                         color: Colors.green,
+//                         color: Colors.teal,
 //                         fontWeight: FontWeight.bold)),
 //                 const Divider(height: 32),
 //                 const Text("Vos coordonnées (une seule fois)",
@@ -315,7 +315,7 @@
 //           const SnackBar(
 //             content: Text(
 //                 "Demande envoyée avec succès ! Le vendeur vous répondra bientôt"),
-//             backgroundColor: Colors.green,
+//             backgroundColor: Colors.teal,
 //           ),
 //         );
 //       }
@@ -404,7 +404,7 @@
 //                                 maxLines: 1),
 //                             Text("${p.price.toStringAsFixed(0)} MRU",
 //                                 style: const TextStyle(
-//                                     color: Colors.green,
+//                                     color: Colors.teal,
 //                                     fontSize: 16,
 //                                     fontWeight: FontWeight.bold)),
 //                             // const SizedBox(height: 6),
@@ -446,7 +446,7 @@
 //                                       label: const Text("Chat",
 //                                           style: TextStyle(fontSize: 11)),
 //                                       style: ElevatedButton.styleFrom(
-//                                         backgroundColor: Colors.green,
+//                                         backgroundColor: Colors.teal,
 //                                         padding: const EdgeInsets.symmetric(
 //                                             vertical: 8),
 //                                         shape: RoundedRectangleBorder(
@@ -672,7 +672,7 @@
 //             ),
 //           ],
 //         ),
-//         backgroundColor: Colors.green,
+//         backgroundColor: Colors.teal,
 //         foregroundColor: Colors.white,
 //       ),
 //       body: Chat(
@@ -680,7 +680,7 @@
 //         onSendPressed: _handleSendPressed,
 //         user: _consumer,
 //         theme: const DefaultChatTheme(
-//           primaryColor: Colors.green,
+//           primaryColor: Colors.teal,
 //           inputBackgroundColor: Colors.black,
 //           sendButtonIcon:
 //               Icon(Icons.send, color: Colors.white), // PLUS BESOIN D'ASSETS !
@@ -700,6 +700,7 @@ import 'package:legumes_app/core/network/api_fetcher.dart';
 import 'package:legumes_app/core/services/consumer_local_service.dart';
 import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/local_provider.dart';
+import 'package:legumes_app/presentation/screens/consumer/consumer_orders_page.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -781,7 +782,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context)!.profileCreated),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.teal,
           ),
         );
       } else {
@@ -916,7 +917,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.requestSentSuccess(product.name, quantity)),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.teal,
         ),
       );
 
@@ -977,7 +978,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: Colors.teal,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1058,180 +1059,313 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.marketTitle),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language, color: Colors.white),
-            onPressed: () {
-              final current = localeProvider.locale.languageCode;
-              final newLocale =
-                  current == 'fr' ? const Locale('ar') : const Locale('fr');
-              localeProvider.changeLocale(newLocale);
-            },
-            tooltip: 'Changer la langue',
-          ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).pushNamed('/login'),
-            icon: const Icon(Icons.login, color: Colors.white),
-            label: Text(AppLocalizations.of(context)!.login,
-                style: const TextStyle(color: Colors.white)),
-          ),
-          // IconButton(
-          //     icon: const Icon(Icons.delete),
-          //     onPressed: ConsumerLocalService.clear),
-        ],
-      ),
-      body: FutureBuilder<List<Product>>(
-        future: _productsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final products = snapshot.data ?? [];
-          if (products.isEmpty) {
-            return Center(
-                child: Text(AppLocalizations.of(context)!.noProducts));
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.62,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.marketTitle),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          actions: [
+            // === NOUVEAU BOUTON : Accès à Mes commandes ===
+            IconButton(
+              icon: const Icon(Icons
+                  .shopping_bag_outlined), // ou Icons.receipt_long, Icons.list_alt
+              tooltip: l10n.myRequests ?? "Mes commandes",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ConsumerOrdersPage()),
+                );
+              },
             ),
-            itemCount: products.length,
-            itemBuilder: (_, i) {
-              final p = products[i];
-              return Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12)),
-                        child: p.imageUrl != null
-                            ? Image.network(p.imageUrl!, fit: BoxFit.cover)
-                            : Container(
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image, size: 60)),
-                      ),
+            // On enlève tout ici → tout passe dans le Drawer
+            // Tu peux garder un simple refresh si tu veux le garder visible
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _refresh,
+              tooltip: 'Actualiser',
+            ),
+          ],
+          // Ajoute l'icône du menu pour ouvrir le Drawer
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+        ),
+        drawer: Drawer(
+          child: Consumer<LocaleProvider>(
+            builder: (context, localeProvider, child) {
+              final l10n = AppLocalizations.of(context)!;
+              final currentLang = localeProvider.locale.languageCode;
+
+              return ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // // En-tête du Drawer
+                  // DrawerHeader(
+                  //   decoration: BoxDecoration(
+                  //     gradient: LinearGradient(
+                  //       colors: [Colors.teal.shade700, Colors.teal.shade500],
+                  //       begin: Alignment.topLeft,
+                  //       end: Alignment.bottomRight,
+                  //     ),
+                  //   ),
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                  //     mainAxisAlignment: MainAxisAlignment.end,
+                  //     children: [
+                  //       const CircleAvatar(
+                  //         radius: 30,
+                  //         backgroundColor: Colors.white,
+                  //         child: Icon(Icons.person, size: 40, color: Colors.teal),
+                  //       ),
+                  //       const SizedBox(height: 12),
+                  //       Text(
+                  //         l10n.guestUser, // ou récupère le nom si connecté
+                  //         style: const TextStyle(
+                  //           color: Colors.white,
+                  //           fontSize: 20,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //       Text(
+                  //         l10n.consumerMode,
+                  //         style: TextStyle(
+                  //           color: Colors.white.withOpacity(0.8),
+                  //           fontSize: 14,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+
+                  // === Changer la langue ===
+                  ListTile(
+                    leading: const Icon(Icons.language, color: Colors.teal),
+                    title: Text(l10n.changeLanguage),
+                    // trailing: Text(
+                    //   currentLang == 'fr' ? 'Français' : 'العربية',
+                    //   style: const TextStyle(fontWeight: FontWeight.w600),
+                    // ),
+                    onTap: () {
+                      final newLocale = currentLang == 'fr'
+                          ? const Locale('ar')
+                          : const Locale('fr');
+                      localeProvider.changeLocale(newLocale);
+                      Navigator.pop(context); // Ferme le drawer
+                    },
+                  ),
+
+                  // === Actualiser ===
+                  ListTile(
+                    leading: const Icon(Icons.refresh, color: Colors.blue),
+                    title: Text(l10n.refresh),
+                    onTap: () {
+                      _refresh();
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  // === Connexion / Inscription ===
+                  ListTile(
+                    leading: const Icon(Icons.login, color: Colors.orange),
+                    title: Text(l10n.login),
+                    subtitle: Text(l10n.loginToAccessMore),
+                    onTap: () {
+                      Navigator.pop(context); // Ferme le drawer
+                      Navigator.of(context).pushNamed('/login');
+                    },
+                  ),
+
+                  // === Optionnel : Effacer les données locales (décommenter si besoin) ===
+                  // ListTile(
+                  //   leading: const Icon(Icons.delete_forever, color: Colors.red),
+                  //   title: const Text("Effacer mes données locales"),
+                  //   onTap: () async {
+                  //     await ConsumerLocalService.clear();
+                  //     if (mounted) {
+                  //       ScaffoldMessenger.of(context).showSnackBar(
+                  //         const SnackBar(content: Text("Données locales effacées")),
+                  //       );
+                  //     }
+                  //     Navigator.pop(context);
+                  //   },
+                  // ),
+
+                  const Divider(),
+
+                  // Pied de page
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      AppLocalizations.of(context)!.marketTitle,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      textAlign: TextAlign.center,
                     ),
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(p.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 15),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            Text("${p.price.toStringAsFixed(0)} MRU/kg",
-                                style: const TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold)),
-                            const Spacer(),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _showOrderDialog(p),
-                                    icon: const Icon(
-                                        Icons.shopping_cart_outlined,
-                                        size: 14,
-                                        color: Colors.white),
-                                    label: Text(
-                                        AppLocalizations.of(context)!.order,
-                                        style: const TextStyle(
-                                            fontSize: 9, color: Colors.white)),
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.orange,
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 8)),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Stack(
-                                    children: [
-                                      ElevatedButton.icon(
-                                        onPressed: () => _openChat(p),
-                                        icon: const Icon(
-                                            Icons.chat_bubble_outline,
-                                            size: 14),
-                                        label: Text(
-                                            AppLocalizations.of(context)!.chat,
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white)),
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 8)),
-                                      ),
-                                      // Badge non-lus (optionnel)
-                                      if (_consumerId != null)
-                                        FutureBuilder<int>(
-                                          future: Supabase.instance.client
-                                              .from('messages')
-                                              .count()
-                                              .eq('consumer_id', _consumerId!)
-                                              .eq('vendor_id', p.vendorId)
-                                              .eq('sender_type', 'vendor')
-                                              .eq('read', false),
-                                          builder: (context, snap) {
-                                            final count = snap.data ?? 0;
-                                            if (count == 0)
-                                              return const SizedBox();
-                                            return Positioned(
-                                              right: 4,
-                                              top: 4,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.all(4),
-                                                decoration: const BoxDecoration(
-                                                    color: Colors.red,
-                                                    shape: BoxShape.circle),
-                                                child: Text(count.toString(),
-                                                    style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 10)),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               );
             },
-          );
-        },
+          ),
+        ),
+        body: FutureBuilder<List<Product>>(
+          future: _productsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final products = snapshot.data ?? [];
+            if (products.isEmpty) {
+              return Center(
+                  child: Text(AppLocalizations.of(context)!.noProducts));
+            }
+
+            return GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.62,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: products.length,
+              itemBuilder: (_, i) {
+                final p = products[i];
+                return Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12)),
+                          child: p.imageUrl != null
+                              ? Image.network(p.imageUrl!, fit: BoxFit.cover)
+                              : Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image, size: 60)),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                              Text("${p.price.toStringAsFixed(0)} MRU/kg",
+                                  style: const TextStyle(
+                                      color: Colors.teal,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
+                              const Spacer(),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _showOrderDialog(p),
+                                      icon: const Icon(
+                                          Icons.shopping_cart_outlined,
+                                          size: 14,
+                                          color: Colors.white),
+                                      label: Text(
+                                          AppLocalizations.of(context)!.order,
+                                          style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white)),
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange,
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        ElevatedButton.icon(
+                                          onPressed: () => _openChat(p),
+                                          icon: const Icon(
+                                              Icons.chat_bubble_outline,
+                                              size: 14),
+                                          label: Text(
+                                              AppLocalizations.of(context)!
+                                                  .chat,
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white)),
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.teal,
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8)),
+                                        ),
+                                        // Badge non-lus (optionnel)
+                                        if (_consumerId != null)
+                                          FutureBuilder<int>(
+                                            future: Supabase.instance.client
+                                                .from('messages')
+                                                .count()
+                                                .eq('consumer_id', _consumerId!)
+                                                .eq('vendor_id', p.vendorId)
+                                                .eq('sender_type', 'vendor')
+                                                .eq('read', false),
+                                            builder: (context, snap) {
+                                              final count = snap.data ?? 0;
+                                              if (count == 0)
+                                                return const SizedBox();
+                                              return Positioned(
+                                                right: 4,
+                                                top: 4,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                          color: Colors.red,
+                                                          shape:
+                                                              BoxShape.circle),
+                                                  child: Text(count.toString(),
+                                                      style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 10)),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1375,7 +1509,7 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.product.vendorShopName ?? l10n.unknownVendor),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
       body: _messages.isEmpty
@@ -1398,7 +1532,7 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
               onSendPressed: _handleSendPressed,
               user: _consumer,
               theme: DefaultChatTheme(
-                primaryColor: Colors.green,
+                primaryColor: Colors.teal,
                 inputBackgroundColor: Colors.white,
                 inputTextColor: Colors.black87,
                 sentMessageBodyTextStyle: const TextStyle(color: Colors.white),

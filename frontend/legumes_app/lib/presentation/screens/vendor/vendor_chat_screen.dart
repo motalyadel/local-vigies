@@ -143,82 +143,84 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.consumerName,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              "${l10n.phonePrefix}: ${widget.consumerPhone}",
-              style: const TextStyle(fontSize: 13, color: Colors.white70),
-            ),
-          ],
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.consumerName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                "${l10n.phonePrefix}: ${widget.consumerPhone}",
+                style: const TextStyle(fontSize: 13, color: Colors.white70),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
         ),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-      ),
-      body: _messages.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.chat_bubble_outline,
-                      size: 80, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(l10n.noMessagesYet,
-                      style: const TextStyle(fontSize: 18)),
-                  Text(l10n.startConversation,
-                      style: TextStyle(color: Colors.grey[600])),
-                ],
-              ),
-            )
-          : Chat(
-              messages: _messages,
-              onSendPressed: _handleSendPressed,
-              user: _vendor,
-              theme: DefaultChatTheme(
-                primaryColor: Colors.teal,
-                inputBackgroundColor: Colors.white,
-                inputTextColor: Colors.black87,
-                sentMessageBodyTextStyle: const TextStyle(color: Colors.white),
-                receivedMessageBodyTextStyle:
-                    const TextStyle(color: Colors.black87),
-                backgroundColor: const Color(0xFFF1F3F5),
-                inputMargin: const EdgeInsets.all(12),
-                inputBorderRadius: BorderRadius.circular(30),
-                inputElevation: 8,
-                inputContainerDecoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-              ),
-              showUserAvatars: true,
-              showUserNames: true,
-              emptyState: Center(
+        body: _messages.isEmpty
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.chat_bubble_outline,
                         size: 80, color: Colors.grey),
                     const SizedBox(height: 16),
-                    Text(l10n.noMessagesYet),
+                    Text(l10n.noMessagesYet,
+                        style: const TextStyle(fontSize: 18)),
                     Text(l10n.startConversation,
                         style: TextStyle(color: Colors.grey[600])),
                   ],
                 ),
+              )
+            : Chat(
+                messages: _messages,
+                onSendPressed: _handleSendPressed,
+                user: _vendor,
+                theme: DefaultChatTheme(
+                  primaryColor: Colors.teal,
+                  inputBackgroundColor: Colors.white,
+                  inputTextColor: Colors.black87,
+                  sentMessageBodyTextStyle: const TextStyle(color: Colors.white),
+                  receivedMessageBodyTextStyle:
+                      const TextStyle(color: Colors.black87),
+                  backgroundColor: const Color(0xFFF1F3F5),
+                  inputMargin: const EdgeInsets.all(12),
+                  inputBorderRadius: BorderRadius.circular(30),
+                  inputElevation: 8,
+                  inputContainerDecoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                ),
+                showUserAvatars: true,
+                showUserNames: true,
+                emptyState: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.chat_bubble_outline,
+                          size: 80, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(l10n.noMessagesYet),
+                      Text(l10n.startConversation,
+                          style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
               ),
-            ),
+      ),
     );
   }
 }

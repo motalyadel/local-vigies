@@ -4,6 +4,7 @@ import 'package:legumes_app/core/utils/navigator.dart';
 import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/auth_controller.dart';
 import 'package:legumes_app/presentation/providers/local_provider.dart';
+import 'package:legumes_app/presentation/providers/notification_controller.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:legumes_app/presentation/providers/vendor_management_controller.dart';
 import 'package:legumes_app/presentation/providers/vendor_update_controller.dart';
@@ -31,6 +32,7 @@ void main() async {
     ChangeNotifierProvider(create: (_) => VendorManagementController()),
     ChangeNotifierProvider(create: (_) => VendorUpdateController()),
     ChangeNotifierProvider(create: (_) => ProductManagementController()),
+    ChangeNotifierProvider(create: (_) => NotificationController()),
   ], child: const MyApp()));
 }
 

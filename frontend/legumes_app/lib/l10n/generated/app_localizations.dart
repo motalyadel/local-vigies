@@ -816,6 +816,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error: Consumer not identified'**
   String get errorConsumerNotFound;
+
+  /// No description provided for @guestUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest'**
+  String get guestUser;
+
+  /// No description provided for @consumerMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumer Mode'**
+  String get consumerMode;
+
+  /// No description provided for @changeLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Language'**
+  String get changeLanguage;
+
+  /// No description provided for @loginToAccessMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to access more features'**
+  String get loginToAccessMore;
+
+  /// No description provided for @acceptedOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders Accepted! 🎉'**
+  String get acceptedOrders;
+
+  /// No description provided for @acceptedOrdersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'1 accepted order|@count accepted orders'**
+  String acceptedOrdersCount(Object count);
+
+  /// No description provided for @orderAcceptedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The vendor has accepted your request. Contact them via chat to finalize.'**
+  String get orderAcceptedMessage;
+
+  /// No description provided for @viewAllOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'View all orders'**
+  String get viewAllOrders;
+
+  /// No description provided for @noAcceptedOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'No accepted orders yet'**
+  String get noAcceptedOrders;
+
+  /// No description provided for @statusInDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'In delivery'**
+  String get statusInDelivery;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get statusCompleted;
+
+  /// No description provided for @statusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get statusUnknown;
+
+  /// No description provided for @updateStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Update status'**
+  String get updateStatus;
+
+  /// No description provided for @requestFinalized.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is finalized and can no longer be modified'**
+  String get requestFinalized;
+
+  /// No description provided for @errorUpdatingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating status'**
+  String get errorUpdatingStatus;
+
+  /// No description provided for @acceptedOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your orders have been accepted! 🎉'**
+  String get acceptedOrdersTitle;
+
+  /// No description provided for @acceptedOrdersMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have 1 accepted order.|You have @count accepted orders.'**
+  String get acceptedOrdersMessage;
+
+  /// No description provided for @availableProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Available products'**
+  String get availableProducts;
+
+  /// No description provided for @viewAllSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature coming soon!'**
+  String get viewAllSoon;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

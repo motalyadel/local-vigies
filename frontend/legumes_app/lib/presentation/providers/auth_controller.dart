@@ -3,6 +3,8 @@ import 'package:legumes_app/core/utils/navigator.dart';
 import 'package:legumes_app/data/models/auth_model.dart';
 import 'package:legumes_app/data/services/base_services.dart';
 import 'package:legumes_app/data/services/vendor_service.dart';
+import 'package:legumes_app/presentation/providers/notification_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController extends ChangeNotifier {
@@ -211,21 +213,62 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  // Future<void> signOut() async {
+  //   try {
+  //     print('Déconnexion en cours');
+  //     await clientSpb.auth.signOut();
+  //     _user = null;
+  //     _service = null;
+  //     AppNavigator.pushReplacement('/login');
+  //     notifyListeners();
+  //   } catch (e, s) {
+  //     error = 'Échec de la déconnexion : $e';
+  //     print('Erreur lors de la déconnexion : $e');
+  //     print('Stack trace: $s');
+  //     notifyListeners();
+  //   }
+  // }
+
   Future<void> signOut() async {
-    try {
-      print('Déconnexion en cours');
-      await clientSpb.auth.signOut();
-      _user = null;
-      _service = null;
-      AppNavigator.pushReplacement('/login');
-      notifyListeners();
-    } catch (e, s) {
-      error = 'Échec de la déconnexion : $e';
-      print('Erreur lors de la déconnexion : $e');
-      print('Stack trace: $s');
-      notifyListeners();
-    }
+  try {
+    print('Déconnexion en cours');
+
+    // 1. Déconnexion Supabase
+    await clientSpb.auth.signOut();
+
+    // 2. Nettoie ton état local
+    _user = null;
+    _service = null;
+
+    // // 3. IMPORTANT : Remet à zéro les notifications (badges)
+    // // Accède au NotificationController via Provider (sans contexte si possible, ou avec)
+    // // Méthode propre : si tu as accès au context, ou mieux : utilise un locator si tu en as un
+    // // Mais la façon la plus simple et fiable ici :
+    // try {
+    //   // Essaie de trouver le provider s'il existe (ne plante pas si non monté)
+    //   final notiCtrl = Provider.of<NotificationController>(
+    //     navigatorKey.currentContext!,
+    //     listen: false,
+    //   );
+    //   notiCtrl.loadNotifications(); // Il détectera que l'utilisateur est déconnecté et mettra à 0
+    //   // Ou plus direct : notiCtrl.refresh(); ou une méthode reset()
+    // } catch (_) {
+    //   // Si le contexte n'est pas disponible, ce n'est pas grave
+    //   // Le listener onAuthStateChange dans NotificationController fera le job
+    // }
+
+    // 4. Redirection
+    AppNavigator.pushReplacement('/login');
+
+    // 5. Notifie les listeners (UI)
+    notifyListeners();
+  } catch (e, s) {
+    error = 'Échec de la déconnexion : $e';
+    print('Erreur lors de la déconnexion : $e');
+    print('Stack trace: $s');
+    notifyListeners();
   }
+}
 
   Future<bool> isAdminOrVendor() async {
     await getUser();

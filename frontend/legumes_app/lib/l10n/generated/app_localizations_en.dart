@@ -395,4 +395,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorConsumerNotFound => 'Error: Consumer not identified';
+
+  @override
+  String get guestUser => 'Guest';
+
+  @override
+  String get consumerMode => 'Consumer Mode';
+
+  @override
+  String get changeLanguage => 'Change Language';
+
+  @override
+  String get loginToAccessMore => 'Log in to access more features';
+
+  @override
+  String get acceptedOrders => 'Orders Accepted! 🎉';
+
+  @override
+  String acceptedOrdersCount(Object count) {
+    return '1 accepted order|@count accepted orders';
+  }
+
+  @override
+  String get orderAcceptedMessage => 'The vendor has accepted your request. Contact them via chat to finalize.';
+
+  @override
+  String get viewAllOrders => 'View all orders';
+
+  @override
+  String get noAcceptedOrders => 'No accepted orders yet';
+
+  @override
+  String get statusInDelivery => 'In delivery';
+
+  @override
+  String get statusCompleted => 'Delivered';
+
+  @override
+  String get statusUnknown => 'Unknown';
+
+  @override
+  String get updateStatus => 'Update status';
+
+  @override
+  String get requestFinalized => 'This request is finalized and can no longer be modified';
+
+  @override
+  String get errorUpdatingStatus => 'Error updating status';
+
+  @override
+  String get acceptedOrdersTitle => 'Your orders have been accepted! 🎉';
+
+  @override
+  String get acceptedOrdersMessage => 'You have 1 accepted order.|You have @count accepted orders.';
+
+  @override
+  String get availableProducts => 'Available products';
+
+  @override
+  String get viewAllSoon => 'Feature coming soon!';
 }

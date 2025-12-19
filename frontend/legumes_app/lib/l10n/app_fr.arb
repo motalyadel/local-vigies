@@ -138,5 +138,36 @@
   "minQuantityError": "La quantité doit être d'au moins 10 kg",
   "requestSentSuccess": "Demande de {quantity} kg de {product} envoyée !",
   "requestSentFailed": "Échec de l'envoi de la demande",
-  "errorConsumerNotFound": "Erreur : consommateur non identifié"
+  "errorConsumerNotFound": "Erreur : consommateur non identifié",
+
+  "guestUser": "Invité",
+  "consumerMode": "Mode Consommateur",
+  "changeLanguage": "Changer la langue",
+  "loginToAccessMore": "Connectez-vous pour plus de fonctionnalités",
+  "acceptedOrders": "Commandes acceptées ! 🎉",
+  "acceptedOrdersCount": "@count commande acceptée|@count commandes acceptées",
+  "orderAcceptedMessage": "Le vendeur a accepté votre demande. Contactez-le via le chat pour finaliser.",
+  "viewAllOrders": "Voir toutes les commandes",
+  "noAcceptedOrders": "Aucune commande acceptée pour le moment",
+  "@acceptedOrdersCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+
+  "statusInDelivery": "En livraison",
+  "statusCompleted": "Terminée",
+  "statusUnknown": "Inconnu",
+  "updateStatus": "Mettre à jour le statut",
+  "requestFinalized": "Cette demande est terminée et ne peut plus être modifiée",
+  "errorUpdatingStatus": "Erreur lors de la mise à jour du statut",
+
+  "acceptedOrdersTitle": "Vos commandes acceptées ! 🎉",
+  "acceptedOrdersMessage": "Vous avez @count commande acceptée.|Vous avez @count commandes acceptées.",
+  "availableProducts": "Produits disponibles",
+  "viewAllOrders": "Voir toutes les commandes",
+  "viewAllSoon": "Fonctionnalité bientôt disponible !",
+  "statusAccepted": "Acceptée",
+  "statusInDelivery": "En livraison",
+  "statusCompleted": "Livrée"
 }

@@ -70,114 +70,116 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
     final localeProvider = Provider.of<LocaleProvider>(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            elevation: 8,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            color: AppColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.local_grocery_store,
-                        size: 80, color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      AppLocalizations.of(context)!.connexionAuMarche,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall!.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.email,
-                        prefixIcon: const Icon(Icons.email),
-                        filled: true,
-                        fillColor: AppColors.background,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      validator: (val) => val != null && val.contains('@')
-                          ? null
-                          : AppLocalizations.of(context)!.invalidEmail,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.password,
-                        prefixIcon: const Icon(Icons.lock),
-                        filled: true,
-                        fillColor: AppColors.background,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      validator: (val) => val != null && val.length >= 6
-                          ? null
-                          : AppLocalizations.of(context)!.passwordTooShort,
-                    ),
-                    if (_error != null) ...[
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Card(
+              elevation: 8,
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              color: AppColors.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_grocery_store,
+                          size: 80, color: AppColors.primary),
                       const SizedBox(height: 16),
                       Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.error),
+                        AppLocalizations.of(context)!.connexionAuMarche,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall!.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.email,
+                          prefixIcon: const Icon(Icons.email),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (val) => val != null && val.contains('@')
+                            ? null
+                            : AppLocalizations.of(context)!.invalidEmail,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.password,
+                          prefixIcon: const Icon(Icons.lock),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (val) => val != null && val.length >= 6
+                            ? null
+                            : AppLocalizations.of(context)!.passwordTooShort,
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ],
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton(
+                                onPressed: _login,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(AppLocalizations.of(context)!.login),
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () {
+                          AppNavigator.pushReplacement('/signup');
+                        },
+                        child: Text(
+                          AppLocalizations.of(context)!.noAccount,
+                          style: const TextStyle(color: AppColors.secondary),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          final current = localeProvider.locale.languageCode;
+                          localeProvider.changeLocale(current == 'fr'
+                              ? const Locale('ar')
+                              : const Locale('fr'));
+                        },
+                        icon: const Icon(Icons.language,
+                            color: AppColors.secondary),
                       ),
                     ],
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton(
-                              onPressed: _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(AppLocalizations.of(context)!.login),
-                            ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        AppNavigator.pushReplacement('/signup');
-                      },
-                      child: Text(
-                        AppLocalizations.of(context)!.noAccount,
-                        style: const TextStyle(color: AppColors.secondary),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        final current = localeProvider.locale.languageCode;
-                        localeProvider.changeLocale(current == 'fr'
-                            ? const Locale('ar')
-                            : const Locale('fr'));
-                      },
-                      icon: const Icon(Icons.language,
-                          color: AppColors.secondary),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

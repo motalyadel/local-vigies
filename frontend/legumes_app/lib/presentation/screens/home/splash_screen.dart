@@ -68,57 +68,59 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icône du marché
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
+        body: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icône du marché
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.local_grocery_store_outlined,
+                      size: 90,
+                      color: Colors.white,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.local_grocery_store_outlined,
-                    size: 90,
-                    color: Colors.white,
+                  const SizedBox(height: 32),
+      
+                  // Titre
+                   Text(
+                    AppLocalizations.of(context)!.marketTitle,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-
-                // Titre
-                 Text(
-                  AppLocalizations.of(context)!.marketTitle,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
+                  const SizedBox(height: 12),
+                   Text(
+                    AppLocalizations.of(context)!.tagline,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                 Text(
-                  AppLocalizations.of(context)!.tagline,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
+                  const SizedBox(height: 48),
+      
+                  // Indicateur de chargement
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3,
                   ),
-                ),
-                const SizedBox(height: 48),
-
-                // Indicateur de chargement
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

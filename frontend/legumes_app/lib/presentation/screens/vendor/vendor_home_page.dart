@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:legumes_app/core/services/unread_messages_service.dart';
 import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/providers/local_provider.dart';
+import 'package:legumes_app/presentation/providers/notification_controller.dart';
 import 'package:legumes_app/presentation/providers/product_management_controller.dart';
 import 'package:legumes_app/presentation/screens/home/login_page.dart';
 import 'package:legumes_app/presentation/screens/product/all_products_page.dart';
@@ -26,12 +27,16 @@ class VendorHomePage extends StatelessWidget {
 
     return Consumer<AuthController>(
       builder: (context, auth, child) {
+        // === Chargement en cours ===
         if (auth.loading) {
-          return const Scaffold(
-              body:
-                  Center(child: CircularProgressIndicator(color: Colors.teal)));
+          return const SafeArea(
+            child: Scaffold(
+              body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+            ),
+          );
         }
 
+        // === Non authentifié ou mauvais rôle ===
         if (!auth.isAuthenticated || auth.currentRole != 'vendor') {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             AppNavigator.pushReplacement('/login');
@@ -39,230 +44,195 @@ class VendorHomePage extends StatelessWidget {
           return const SizedBox();
         }
 
-        final productCtrl =
-            Provider.of<ProductManagementController>(context, listen: false);
+        // === Accès aux controllers (sans listen pour éviter rebuild inutiles) ===
+        final productCtrl = Provider.of<ProductManagementController>(context, listen: false);
+        final notiCtrl = Provider.of<NotificationController>(context, listen: false);
+
+        // === Chargement initial unique (produits + notifications) ===
         WidgetsBinding.instance.addPostFrameCallback((_) {
           productCtrl.loadProducts();
+          notiCtrl.loadNotifications(); // ← IMPORTANT : charge les badges ici
         });
 
-        return Scaffold(
-          backgroundColor: Colors.grey[50],
-          appBar: AppBar(
-            title: Text(l10n.vendorDashboard,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.language),
-                onPressed: () {
-                  final current = localeProvider.locale.languageCode;
-                  localeProvider.changeLocale(current == 'fr'
-                      ? const Locale('ar')
-                      : const Locale('fr'));
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.person),
-                tooltip: l10n.profileLogout,
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text(l10n.logout),
-                      content: Text(l10n.logoutConfirm),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text(l10n.cancel),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade700,
-                            foregroundColor: Colors.white,
-                            elevation: 3,
+        // === UI principale ===
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: Colors.grey[50],
+            appBar: AppBar(
+              title: Text(l10n.vendorDashboard,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.language),
+                  onPressed: () {
+                    final current = localeProvider.locale.languageCode;
+                    localeProvider.changeLocale(current == 'fr'
+                        ? const Locale('ar')
+                        : const Locale('fr'));
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  tooltip: l10n.profileLogout,
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(l10n.logout),
+                        content: Text(l10n.logoutConfirm),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(l10n.cancel),
                           ),
-                          child: Text(l10n.logout),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              foregroundColor: Colors.white,
+                              elevation: 3,
+                            ),
+                            child: Text(l10n.logout),
+                          ),
+                        ],
+                      ),
+                    );
+          
+                    if (confirm == true) {
+                      await auth.signOut();
+                    }
+                  },
+                ),
+              ],
+            ),
+            body: Consumer<ProductManagementController>(
+              builder: (context, ctrl, child) {
+                final totalProducts = ctrl.products.length;
+                final totalStock =
+                    ctrl.products.fold<int>(0, (sum, p) => sum + p.quantity);
+          
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await ctrl.loadProducts();
+                    await Provider.of<NotificationController>(context,
+                            listen: false)
+                        .refresh();
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        // ===== Carte principale : Mes produits (UN SEUL BOUTON) =====
+                        _buildMainActionCard(
+                          context: context,
+                          title: l10n.myProducts,
+                          subtitle: l10n.totalProductsCount(totalProducts),
+                          stockInfo: l10n.totalStockKg(totalStock),
+                          icon: Icons.inventory_2_rounded,
+                          color: Colors.teal,
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const MyProductsPage())),
+                        ),
+                        const SizedBox(height: 24),
+          
+                        // ===== Statistiques rapides =====
+                        Row(
+                          children: [
+                            Expanded(
+                                child: _buildStatCard(
+                                    l10n.totalProducts,
+                                    totalProducts.toString(),
+                                    Icons.bar_chart,
+                                    Colors.blue)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                                child: _buildStatCard(l10n.totalStock,
+                                    "$totalStock kg", Icons.scale, Colors.green)),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+          
+                        // ===== Actions rapides =====
+                        _buildQuickActionTile(
+                          icon: Icons.add_box_rounded,
+                          title: l10n.addProduct,
+                          color: Colors.orange,
+                          onTap: () => AppNavigator.push('/add_product'),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildQuickActionTile(
+                          icon: Icons.storefront,
+                          title: l10n.marketProducts,
+                          color: Colors.purple,
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AllProductsPage())),
+                        ),
+                        const SizedBox(height: 12),
+                        // === Badge Messages non lus ===
+                        Stack(
+                          children: [
+                            _buildQuickActionTile(
+                              icon: Icons.chat_bubble,
+                              title: l10n.myConversations,
+                              color: Colors.blue,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const VendorChatListScreen()),
+                              ),
+                            ),
+                            Consumer<NotificationController>(
+                              builder: (context, noti, child) {
+                                if (noti.unreadMessages == 0)
+                                  return const SizedBox();
+                                return _buildBadge(noti.unreadMessages);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // === Badge Demandes en attente ===
+                        Stack(
+                          children: [
+                            _buildQuickActionTile(
+                              icon: Icons.shopping_cart_checkout,
+                              title: l10n.myRequests,
+                              color: Colors.deepOrange,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const VendorRequestsPage()),
+                              ),
+                            ),
+                            Consumer<NotificationController>(
+                              builder: (context, noti, child) {
+                                if (noti.pendingRequests == 0)
+                                  return const SizedBox();
+                                return _buildBadge(noti.pendingRequests);
+                              },
+                            ),
+                          ],
+                        ),
+          
+                        const SizedBox(height: 32),
+                        Text(
+                          '${l10n.lastUpdate}: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
-                  );
-
-                  if (confirm == true) {
-                    await auth.signOut();
-                  }
-                },
-              ),
-            ],
-          ),
-          body: Consumer<ProductManagementController>(
-            builder: (context, ctrl, child) {
-              final totalProducts = ctrl.products.length;
-              final totalStock =
-                  ctrl.products.fold<int>(0, (sum, p) => sum + p.quantity);
-
-              return RefreshIndicator(
-                onRefresh: ctrl.loadProducts,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // ===== Carte principale : Mes produits (UN SEUL BOUTON) =====
-                      _buildMainActionCard(
-                        context: context,
-                        title: l10n.myProducts,
-                        subtitle: l10n.totalProductsCount(totalProducts),
-                        stockInfo: l10n.totalStockKg(totalStock),
-                        icon: Icons.inventory_2_rounded,
-                        color: Colors.teal,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const MyProductsPage())),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ===== Statistiques rapides =====
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildStatCard(
-                                  l10n.totalProducts,
-                                  totalProducts.toString(),
-                                  Icons.bar_chart,
-                                  Colors.blue)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                              child: _buildStatCard(l10n.totalStock,
-                                  "$totalStock kg", Icons.scale, Colors.green)),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-
-                      // ===== Actions rapides =====
-                      _buildQuickActionTile(
-                        icon: Icons.add_box_rounded,
-                        title: l10n.addProduct,
-                        color: Colors.orange,
-                        onTap: () => AppNavigator.push('/add_product'),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildQuickActionTile(
-                        icon: Icons.storefront,
-                        title: l10n.marketProducts,
-                        color: Colors.purple,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const AllProductsPage())),
-                      ),
-                      const SizedBox(height: 12),
-                      Stack(
-                        children: [
-                          _buildQuickActionTile(
-                            icon: Icons.chat_bubble,
-                            title: l10n.myConversations,
-                            color: Colors.blue,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const VendorChatListScreen())),
-                          ),
-                          // Badge non lus
-                          FutureBuilder<int>(
-                            future:
-                                UnreadMessagesService.getUnreadCountForVendor(),
-                            builder: (context, snapshot) {
-                              final count = snapshot.data ?? 0;
-                              if (count == 0) return const SizedBox();
-                              return Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                      minWidth: 20, minHeight: 20),
-                                  child: Text(
-                                    count > 99 ? '99+' : count.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Stack(
-                        children: [
-                          _buildQuickActionTile(
-                            icon: Icons.shopping_cart_checkout,
-                            title: l10n.myRequests,
-                            color: Colors.deepOrange,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const VendorRequestsPage())),
-                          ),
-
-                          // Badge demandes en attente
-                          FutureBuilder<int>(
-                            future: productCtrl.pendingRequestsCount,
-                            builder: (context, snapshot) {
-                              final count = snapshot.data ?? 0;
-                              if (count == 0) return const SizedBox();
-
-                              return Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                      minWidth: 20, minHeight: 20),
-                                  child: Text(
-                                    count > 99 ? '99+' : count.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 32),
-                      Text(
-                        '${l10n.lastUpdate}: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
@@ -382,6 +352,30 @@ class VendorHomePage extends StatelessWidget {
         trailing:
             const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildBadge(int count) {
+    return Positioned(
+      right: 8,
+      top: 8,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: const BoxDecoration(
+          color: Colors.red,
+          shape: BoxShape.circle,
+        ),
+        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+        child: Text(
+          count > 99 ? '99+' : count.toString(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

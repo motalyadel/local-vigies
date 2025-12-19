@@ -395,4 +395,63 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errorConsumerNotFound => 'Erreur : consommateur non identifié';
+
+  @override
+  String get guestUser => 'Invité';
+
+  @override
+  String get consumerMode => 'Mode Consommateur';
+
+  @override
+  String get changeLanguage => 'Changer la langue';
+
+  @override
+  String get loginToAccessMore => 'Connectez-vous pour plus de fonctionnalités';
+
+  @override
+  String get acceptedOrders => 'Commandes acceptées ! 🎉';
+
+  @override
+  String acceptedOrdersCount(Object count) {
+    return '@count commande acceptée|@count commandes acceptées';
+  }
+
+  @override
+  String get orderAcceptedMessage => 'Le vendeur a accepté votre demande. Contactez-le via le chat pour finaliser.';
+
+  @override
+  String get viewAllOrders => 'Voir toutes les commandes';
+
+  @override
+  String get noAcceptedOrders => 'Aucune commande acceptée pour le moment';
+
+  @override
+  String get statusInDelivery => 'En livraison';
+
+  @override
+  String get statusCompleted => 'Livrée';
+
+  @override
+  String get statusUnknown => 'Inconnu';
+
+  @override
+  String get updateStatus => 'Mettre à jour le statut';
+
+  @override
+  String get requestFinalized => 'Cette demande est terminée et ne peut plus être modifiée';
+
+  @override
+  String get errorUpdatingStatus => 'Erreur lors de la mise à jour du statut';
+
+  @override
+  String get acceptedOrdersTitle => 'Vos commandes acceptées ! 🎉';
+
+  @override
+  String get acceptedOrdersMessage => 'Vous avez @count commande acceptée.|Vous avez @count commandes acceptées.';
+
+  @override
+  String get availableProducts => 'Produits disponibles';
+
+  @override
+  String get viewAllSoon => 'Fonctionnalité bientôt disponible !';
 }

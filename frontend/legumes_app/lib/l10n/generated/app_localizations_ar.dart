@@ -303,7 +303,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get statusPending => 'قيد الانتظار';
 
   @override
-  String get statusAccepted => 'تم القبول';
+  String get statusAccepted => 'مقبولة';
 
   @override
   String get statusRejected => 'مرفوض';
@@ -395,4 +395,63 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errorConsumerNotFound => 'خطأ: المستهلك غير معروف';
+
+  @override
+  String get guestUser => 'زائر';
+
+  @override
+  String get consumerMode => 'وضع المستهلك';
+
+  @override
+  String get changeLanguage => 'تغيير اللغة';
+
+  @override
+  String get loginToAccessMore => 'سجل الدخول للوصول إلى المزيد من الميزات';
+
+  @override
+  String get acceptedOrders => 'تم قبول طلباتك! 🎉';
+
+  @override
+  String acceptedOrdersCount(Object count) {
+    return 'طلب واحد مقبول|طلبين مقبولين|$count طلبات مقبولة';
+  }
+
+  @override
+  String get orderAcceptedMessage => 'قبل البائع طلبك. تواصل معه عبر الدردشة لإكمال العملية.';
+
+  @override
+  String get viewAllOrders => 'عرض جميع الطلبات';
+
+  @override
+  String get noAcceptedOrders => 'لا توجد طلبات مقبولة حالياً';
+
+  @override
+  String get statusInDelivery => 'في التوصيل';
+
+  @override
+  String get statusCompleted => 'تم التسليم';
+
+  @override
+  String get statusUnknown => 'غير معروف';
+
+  @override
+  String get updateStatus => 'تحديث الحالة';
+
+  @override
+  String get requestFinalized => 'تم إنهاء هذا الطلب ولا يمكن تعديله بعد الآن';
+
+  @override
+  String get errorUpdatingStatus => 'حدث خطأ أثناء تحديث الحالة';
+
+  @override
+  String get acceptedOrdersTitle => 'تم قبول طلباتك! 🎉';
+
+  @override
+  String get acceptedOrdersMessage => 'لديك طلب مقبول واحد.|لديك @count طلبات مقبولة.';
+
+  @override
+  String get availableProducts => 'المنتجات المتوفرة';
+
+  @override
+  String get viewAllSoon => 'هذه الميزة قريباً!';
 }

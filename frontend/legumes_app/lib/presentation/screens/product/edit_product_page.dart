@@ -88,191 +88,193 @@ class _EditProductPageState extends State<EditProductPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(l10n.editProduct,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-        backgroundColor: const Color.fromARGB(0, 136, 150, 150).withOpacity(1),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                            color: Color.fromARGB(0, 136, 150, 150).withOpacity(0.3), width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10))
-                        ],
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          title: Text(l10n.editProduct,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+          backgroundColor: const Color.fromARGB(0, 136, 150, 150).withOpacity(1),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Center(
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                              color: Color.fromARGB(0, 136, 150, 150).withOpacity(0.3), width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10))
+                          ],
+                        ),
+                        child: _newPhoto != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(26),
+                                child: Image.file(File(_newPhoto!.path),
+                                    fit: BoxFit.cover),
+                              )
+                            : widget.product.imageUrl != null &&
+                                    widget.product.imageUrl!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(26),
+                                    child: Image.network(widget.product.imageUrl!,
+                                        fit: BoxFit.cover),
+                                  )
+                                : const Icon(Icons.image_rounded,
+                                    size: 80, color: Colors.grey),
                       ),
-                      child: _newPhoto != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(26),
-                              child: Image.file(File(_newPhoto!.path),
-                                  fit: BoxFit.cover),
-                            )
-                          : widget.product.imageUrl != null &&
-                                  widget.product.imageUrl!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(26),
-                                  child: Image.network(widget.product.imageUrl!,
-                                      fit: BoxFit.cover),
-                                )
-                              : const Icon(Icons.image_rounded,
-                                  size: 80, color: Colors.grey),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: FloatingActionButton.small(
-                        onPressed: _pickPhoto,
-                        backgroundColor: Color.fromARGB(0, 136, 150, 150),
-                        child:
-                            const Icon(Icons.camera_alt, color: Colors.white),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: FloatingActionButton.small(
+                          onPressed: _pickPhoto,
+                          backgroundColor: Color.fromARGB(0, 136, 150, 150),
+                          child:
+                              const Icon(Icons.camera_alt, color: Colors.white),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _nameCtrl,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: l10n.productName,
-                  prefixIcon: const Icon(Icons.inventory_2_rounded),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.grey[300]!)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide:
-                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
-                ),
-                validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _priceCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: l10n.priceMRU,
-                  prefixIcon: const Icon(Icons.attach_money_rounded),
-                  suffixText: ' MRU',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.grey[300]!)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide:
-                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
-                ),
-                validator: (v) => v!.trim().isEmpty ||
-                        double.tryParse(v!) == null ||
-                        double.parse(v!) <= 0
-                    ? l10n.invalidPrice
-                    : null,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _quantityCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: l10n.quantityKg,
-                  prefixIcon: const Icon(Icons.scale_rounded),
-                  suffixText: ' kg',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.grey[300]!)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide:
-                          const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
-                ),
-                validator: (v) => v!.trim().isEmpty ||
-                        int.tryParse(v!) == null ||
-                        int.parse(v!) <= 0
-                    ? l10n.invalidQuantity
-                    : null,
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2030),
-                  );
-                  if (date != null) setState(() => _selectedDate = date);
-                },
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: Colors.grey[300]!)),
-                tileColor: Colors.white,
-                leading: const Icon(Icons.calendar_today_rounded,
-                    color: Colors.teal),
-                title: Text(
-                    l10n.productDate(
-                        DateFormat('dd MMMM yyyy').format(_selectedDate)),
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: const Icon(Icons.edit_calendar, color: Colors.teal),
-              ),
-              const SizedBox(height: 50),
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromARGB(0, 136, 150, 150),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    elevation: 8,
+                    ],
                   ),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(l10n.update,
-                          style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
                 ),
-              ),
-              const SizedBox(height: 30),
-            ],
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: _nameCtrl,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: l10n.productName,
+                    prefixIcon: const Icon(Icons.inventory_2_rounded),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.grey[300]!)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide:
+                            const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
+                  ),
+                  validator: (v) => v!.trim().isEmpty ? l10n.fieldRequired : null,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _priceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.priceMRU,
+                    prefixIcon: const Icon(Icons.attach_money_rounded),
+                    suffixText: ' MRU',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.grey[300]!)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide:
+                            const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
+                  ),
+                  validator: (v) => v!.trim().isEmpty ||
+                          double.tryParse(v!) == null ||
+                          double.parse(v!) <= 0
+                      ? l10n.invalidPrice
+                      : null,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _quantityCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.quantityKg,
+                    prefixIcon: const Icon(Icons.scale_rounded),
+                    suffixText: ' kg',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.grey[300]!)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide:
+                            const BorderSide(color: Color.fromARGB(0, 136, 150, 150), width: 2)),
+                  ),
+                  validator: (v) => v!.trim().isEmpty ||
+                          int.tryParse(v!) == null ||
+                          int.parse(v!) <= 0
+                      ? l10n.invalidQuantity
+                      : null,
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (date != null) setState(() => _selectedDate = date);
+                  },
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(color: Colors.grey[300]!)),
+                  tileColor: Colors.white,
+                  leading: const Icon(Icons.calendar_today_rounded,
+                      color: Colors.teal),
+                  title: Text(
+                      l10n.productDate(
+                          DateFormat('dd MMMM yyyy').format(_selectedDate)),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  trailing: const Icon(Icons.edit_calendar, color: Colors.teal),
+                ),
+                const SizedBox(height: 50),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(0, 136, 150, 150),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
+                      elevation: 8,
+                    ),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(l10n.update,
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black)),
+                  ),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),

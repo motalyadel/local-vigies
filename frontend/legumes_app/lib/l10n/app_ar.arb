@@ -138,5 +138,36 @@
   "minQuantityError": "يجب أن تكون الكمية 10 كجم على الأقل",
   "requestSentSuccess": "تم إرسال طلب {quantity} كجم من {product} بنجاح!",
   "requestSentFailed": "فشل إرسال الطلب",
-  "errorConsumerNotFound": "خطأ: المستهلك غير معروف"
+  "errorConsumerNotFound": "خطأ: المستهلك غير معروف",
+
+  "guestUser": "زائر",
+  "consumerMode": "وضع المستهلك",
+  "changeLanguage": "تغيير اللغة",
+  "loginToAccessMore": "سجل الدخول للوصول إلى المزيد من الميزات",
+  "acceptedOrders": "تم قبول طلباتك! 🎉",
+  "acceptedOrdersCount": "طلب واحد مقبول|طلبين مقبولين|{count} طلبات مقبولة",
+  "orderAcceptedMessage": "قبل البائع طلبك. تواصل معه عبر الدردشة لإكمال العملية.",
+  "viewAllOrders": "عرض جميع الطلبات",
+  "noAcceptedOrders": "لا توجد طلبات مقبولة حالياً",
+  "@acceptedOrdersCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+
+  "statusInDelivery": "في التوصيل",
+  "statusCompleted": "مكتملة",
+  "statusUnknown": "غير معروف",
+  "updateStatus": "تحديث الحالة",
+  "requestFinalized": "تم إنهاء هذا الطلب ولا يمكن تعديله بعد الآن",
+  "errorUpdatingStatus": "حدث خطأ أثناء تحديث الحالة",
+
+  "acceptedOrdersTitle": "تم قبول طلباتك! 🎉",
+  "acceptedOrdersMessage": "لديك طلب مقبول واحد.|لديك @count طلبات مقبولة.",
+  "availableProducts": "المنتجات المتوفرة",
+  "viewAllOrders": "عرض جميع الطلبات",
+  "viewAllSoon": "هذه الميزة قريباً!",
+  "statusAccepted": "مقبولة",
+  "statusInDelivery": "في التوصيل",
+  "statusCompleted": "تم التسليم"
 }

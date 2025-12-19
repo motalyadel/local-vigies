@@ -69,78 +69,80 @@ class _AddVendorPageState extends State<AddVendorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ajouter un Vendeur'),
-        backgroundColor: Colors.teal,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Nom complet', prefixIcon: Icon(Icons.person)),
-                validator: (v) => v!.trim().isEmpty ? 'Requis' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Email', prefixIcon: Icon(Icons.email)),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) => !v!.contains('@') ? 'Email invalide' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Mot de passe', prefixIcon: Icon(Icons.lock)),
-                obscureText: true,
-                validator: (v) => v!.length < 6 ? '6+ caractères' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _shopCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Nom du magasin', prefixIcon: Icon(Icons.store)),
-                validator: (v) => v!.trim().isEmpty ? 'Requis' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                  controller: _phoneCtrl,
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Ajouter un Vendeur'),
+          backgroundColor: Colors.teal,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _nameCtrl,
                   decoration: const InputDecoration(
-                      labelText: 'Téléphone', prefixIcon: Icon(Icons.phone))),
-              const SizedBox(height: 12),
-              TextFormField(
-                  controller: _locCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Localisation',
-                      prefixIcon: Icon(Icons.location_on))),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _pickPhoto,
-                icon: const Icon(Icons.photo),
-                label: const Text('Photo'),
-              ),
-              if (_photo != null) Text('Photo: ${_photo!.name}'),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.all(16)),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Créer', style: TextStyle(fontSize: 16)),
+                      labelText: 'Nom complet', prefixIcon: Icon(Icons.person)),
+                  validator: (v) => v!.trim().isEmpty ? 'Requis' : null,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _emailCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) => !v!.contains('@') ? 'Email invalide' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _passCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Mot de passe', prefixIcon: Icon(Icons.lock)),
+                  obscureText: true,
+                  validator: (v) => v!.length < 6 ? '6+ caractères' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _shopCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Nom du magasin', prefixIcon: Icon(Icons.store)),
+                  validator: (v) => v!.trim().isEmpty ? 'Requis' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                    controller: _phoneCtrl,
+                    decoration: const InputDecoration(
+                        labelText: 'Téléphone', prefixIcon: Icon(Icons.phone))),
+                const SizedBox(height: 12),
+                TextFormField(
+                    controller: _locCtrl,
+                    decoration: const InputDecoration(
+                        labelText: 'Localisation',
+                        prefixIcon: Icon(Icons.location_on))),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _pickPhoto,
+                  icon: const Icon(Icons.photo),
+                  label: const Text('Photo'),
+                ),
+                if (_photo != null) Text('Photo: ${_photo!.name}'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.all(16)),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Créer', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

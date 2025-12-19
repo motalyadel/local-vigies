@@ -138,5 +138,36 @@
   "minQuantityError": "Quantity must be at least 10 kg",
   "requestSentSuccess": "Request for {quantity} kg of {product} sent successfully!",
   "requestSentFailed": "Failed to send request",
-  "errorConsumerNotFound": "Error: Consumer not identified"
+  "errorConsumerNotFound": "Error: Consumer not identified",
+
+  "guestUser": "Guest",
+  "consumerMode": "Consumer Mode",
+  "changeLanguage": "Change Language",
+  "loginToAccessMore": "Log in to access more features",
+  "acceptedOrders": "Orders Accepted! 🎉",
+  "acceptedOrdersCount": "1 accepted order|@count accepted orders",
+  "orderAcceptedMessage": "The vendor has accepted your request. Contact them via chat to finalize.",
+  "viewAllOrders": "View all orders",
+  "noAcceptedOrders": "No accepted orders yet",
+  "@acceptedOrdersCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+
+  "statusInDelivery": "In delivery",
+  "statusCompleted": "Completed",
+  "statusUnknown": "Unknown",
+  "updateStatus": "Update status",
+  "requestFinalized": "This request is finalized and can no longer be modified",
+  "errorUpdatingStatus": "Error updating status",
+
+  "acceptedOrdersTitle": "Your orders have been accepted! 🎉",
+  "acceptedOrdersMessage": "You have 1 accepted order.|You have @count accepted orders.",
+  "availableProducts": "Available products",
+  "viewAllOrders": "View all orders",
+  "viewAllSoon": "Feature coming soon!",
+  "statusAccepted": "Accepted",
+  "statusInDelivery": "In delivery",
+  "statusCompleted": "Delivered"
 }

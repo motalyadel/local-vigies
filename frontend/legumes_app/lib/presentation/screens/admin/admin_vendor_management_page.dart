@@ -90,67 +90,71 @@ class _AdminVendorManagementPageState extends State<AdminVendorManagementPage> {
     return Consumer<VendorManagementController>(
       builder: (context, controller, child) {
         if (controller.loading) {
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+          return const SafeArea(
+            child: Scaffold(
+                body: Center(child: CircularProgressIndicator())),
+          );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Gestion des Vendeurs'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.person),
-                tooltip: 'Profil / Déconnexion',
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Déconnexion'),
-                      content:
-                          const Text('Voulez-vous vraiment vous déconnecter ?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Annuler'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Déconnecter'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm == true) {
-                    await auth.signOut();
-                  }
-                },
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: _addVendor,
-            child: const Icon(Icons.add),
-          ),
-          body: controller.error != null
-              ? Center(child: Text('Erreur: ${controller.error}'))
-              : controller.vendors.isEmpty
-                  ? const Center(child: Text('Aucun vendeur'))
-                  : RefreshIndicator(
-                      onRefresh: controller.loadVendors,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: controller.vendors.length,
-                        itemBuilder: (context, i) {
-                          final v = controller.vendors[i];
-                          return VendorCard(
-                            vendor: v,
-                            onEdit: () => _editVendor(v),
-                            onDelete: () => _deleteVendor(v.id),
-                          );
-                        },
+        return SafeArea(
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Gestion des Vendeurs'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  tooltip: 'Profil / Déconnexion',
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Déconnexion'),
+                        content:
+                            const Text('Voulez-vous vraiment vous déconnecter ?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Annuler'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Déconnecter'),
+                          ),
+                        ],
                       ),
-                    ),
+                    );
+          
+                    if (confirm == true) {
+                      await auth.signOut();
+                    }
+                  },
+                ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: _addVendor,
+              child: const Icon(Icons.add),
+            ),
+            body: controller.error != null
+                ? Center(child: Text('Erreur: ${controller.error}'))
+                : controller.vendors.isEmpty
+                    ? const Center(child: Text('Aucun vendeur'))
+                    : RefreshIndicator(
+                        onRefresh: controller.loadVendors,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(8),
+                          itemCount: controller.vendors.length,
+                          itemBuilder: (context, i) {
+                            final v = controller.vendors[i];
+                            return VendorCard(
+                              vendor: v,
+                              onEdit: () => _editVendor(v),
+                              onDelete: () => _deleteVendor(v.id),
+                            );
+                          },
+                        ),
+                      ),
+          ),
         );
       },
     );
