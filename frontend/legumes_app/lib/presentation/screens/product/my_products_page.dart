@@ -277,7 +277,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                   Row(
                                     children: [
                                       Text(
-                                        "${product.price.toStringAsFixed(0)} MRU/Kg",
+                                        "${product.price.toStringAsFixed(0)} ${l10n.pricePerKg}",
                                         style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,

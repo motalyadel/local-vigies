@@ -64,7 +64,7 @@
 
   "noProductsAddHint": "Aucun produit\nAppuyez sur + pour ajouter",
   "price": "Prix : {price} MRU",
-  "stock": "Stock : {quantity} K",
+  "stock": "Stock : {quantity} Kg",
   "productDate": "Date : {date}",
   "updatePrice": "Mettre à jour le prix",
   "updatePriceTitle": "Nouveau prix – {productName}",
@@ -99,6 +99,14 @@
 
   "myRequests": "Mes demandes",
   "noRequestsYet": "Aucune demande pour le moment",
+  "vendorUnknown": "Vendeur inconnu",
+  "totalLabel": "Total :",
+  "pricePerKg": "MRU/Kg",
+  "quantityKg": "Kg",
+  "quantityRequested": "Quantité demandée : @qty Kg",
+  "insufficientStock": "Stock insuffisant pour honorer cette commande",
+  "stockUpdatedSuccessfully": "Commande mise en livraison et stock mis à jour",
+  "errorUpdatingStock": "Erreur lors de la mise à jour du stock",
   "requestFrom": "Demande de {customerName}",
   "unknownCustomer": "Client inconnu",
   "requestedAt": "Reçue le {time}",
@@ -169,5 +177,18 @@
   "viewAllSoon": "Fonctionnalité bientôt disponible !",
   "statusAccepted": "Acceptée",
   "statusInDelivery": "En livraison",
-  "statusCompleted": "Livrée"
+
+  "enterDeliveryAddress": "Entrez votre adresse de livraison",
+  "openInGoogleMaps": "Ouvrir dans Google Maps",
+  "enterAddressFirst": "Veuillez d'abord saisir une adresse",
+  "addressHelpText": "Tapez votre adresse et appuyez sur l'icône pour vérifier sur Google Maps",
+  "addressRequired": "L'adresse est obligatoire",
+
+  "next": "Suivant",
+  "pasteAddress": "Collez votre adresse",
+  "pasteHere": "Collez l'adresse copiée depuis Google Maps ici...",
+  "tapToSelectOnMap": "Touchez pour ouvrir Google Maps et choisir votre adresse",
+  "mapsInstructions": "Cliquez longuement sur la carte pour placer le marqueur, puis copiez l'adresse affichée",
+  "mapsHelpText": "Ouvrez la carte, cliquez longuement pour placer un marqueur, puis copiez l'adresse affichée en bas.",
+  "confirm": "Confirmer"
 }

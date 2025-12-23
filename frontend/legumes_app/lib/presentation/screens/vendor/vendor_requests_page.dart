@@ -1,12 +1,12 @@
 // presentation/pages/vendor/vendor_requests_page.dart
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:legumes_app/l10n/generated/app_localizations.dart';
 import 'package:legumes_app/presentation/screens/vendor/vendor_chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class VendorRequestsPage extends StatefulWidget {
   const VendorRequestsPage({super.key});
@@ -16,7 +16,6 @@ class VendorRequestsPage extends StatefulWidget {
 }
 
 class _VendorRequestsPageState extends State<VendorRequestsPage> {
-  // Liste des statuts possibles
   final List<String> _statuses = [
     'pending',
     'accepted',
@@ -25,7 +24,6 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
     'completed',
   ];
 
-  // Couleurs associées à chaque statut
   Color _getStatusColor(String? status) {
     return switch (status) {
       'pending' => Colors.orange,
@@ -37,7 +35,6 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
     };
   }
 
-  // Texte localisé du statut
   String _getStatusText(String? status, AppLocalizations l10n) {
     return switch (status) {
       'pending' => l10n.statusPending,
@@ -49,41 +46,92 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
     };
   }
 
-  // Mise à jour du statut avec logique intelligente
-  Future<void> _updateStatus(String requestId, String oldStatus, String newStatus) async {
+  // Mise à jour du statut + déduction du stock si passage à in_delivery
+  Future<void> _updateStatus(String requestId, String oldStatus,
+      String newStatus, int quantityRequested, String productId) async {
     final Map<String, dynamic> updateData = {'status': newStatus};
 
-    // On met à jour responded_at seulement si on passe de pending à autre chose
     if (oldStatus == 'pending' && newStatus != 'pending') {
       updateData['responded_at'] = DateTime.now().toIso8601String();
     }
 
-    try {
-      await Supabase.instance.client
-          .from('product_requests')
-          .update(updateData)
-          .eq('id', requestId);
+    // Cas spécial : passage à in_delivery → déduire du stock
+    if (newStatus == 'in_delivery' && oldStatus != 'in_delivery') {
+      try {
+        // 1. Récupérer le stock actuel du produit
+        final productResponse = await Supabase.instance.client
+            .from('products')
+            .select('quantity')
+            .eq('id', productId)
+            .single();
 
-      // Optionnel : déclencher une notification push ou in-app pour le consumer
-      // Tu peux ajouter un trigger Supabase ou un appel API ici
-      print('Statut mis à jour : $newStatus pour la demande $requestId');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorUpdatingStatus)),
-        );
+        final currentStock =
+            (productResponse['quantity'] as num?)?.toInt() ?? 0;
+
+        if (currentStock < quantityRequested) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.insufficientStock ??
+                    "Stock insuffisant pour cette commande"),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return; // On arrête ici, pas de changement de statut
+        }
+
+        // 2. Mettre à jour le stock
+        await Supabase.instance.client.from('products').update(
+            {'quantity': currentStock - quantityRequested}).eq('id', productId);
+
+        // 3. Mettre à jour le statut de la demande
+        await Supabase.instance.client
+            .from('product_requests')
+            .update(updateData)
+            .eq('id', requestId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.stockUpdatedSuccessfully ??
+                      "Stock mis à jour et commande en livraison"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    AppLocalizations.of(context)!.errorUpdatingStock ??
+                        "Erreur lors de la mise à jour du stock")),
+          );
+        }
+        return;
+      }
+    } else {
+      // Tous les autres changements de statut (hors in_delivery)
+      try {
+        await Supabase.instance.client
+            .from('product_requests')
+            .update(updateData)
+            .eq('id', requestId);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text(AppLocalizations.of(context)!.errorUpdatingStatus)),
+          );
+        }
       }
     }
   }
 
-  void _callClient(String? phone) async {
-    if (phone == null || phone == 'Non disponible' || phone.isEmpty) return;
-    final uri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
+  // Mise à jour du stream pour inclure quantity_requested
   Stream<List<Map<String, dynamic>>> get _requestsStream {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return const Stream.empty();
@@ -108,7 +156,8 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                 .inFilter('id', productIds);
 
             productImages.addAll({
-              for (var p in productsResponse) p['id'] as String: p['image_url'] as String?
+              for (var p in productsResponse)
+                p['id'] as String: p['image_url'] as String?
             });
           }
 
@@ -125,24 +174,34 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                 .select('id, name, phone')
                 .inFilter('id', consumerIds);
 
-            consumerMap.addAll({
-              for (var c in consumersResponse) c['id'] as String: c
-            });
+            consumerMap.addAll(
+                {for (var c in consumersResponse) c['id'] as String: c});
           }
 
           return requests.map((r) {
             final consumerId = r['consumer_id'] as String?;
-            final consumerData = consumerId != null ? consumerMap[consumerId] : null;
-            final productImage = r['product_id'] != null ? productImages[r['product_id']] : null;
+            final consumerData =
+                consumerId != null ? consumerMap[consumerId] : null;
+            final productImage =
+                r['product_id'] != null ? productImages[r['product_id']] : null;
 
             return {
               ...r,
+              'quantity_requested': r['quantity'] ?? 0,
               'consumer_name': consumerData?['name'] ?? 'Client inconnu',
               'consumer_phone': consumerData?['phone'] ?? 'Non disponible',
               'product_image_url': productImage,
             };
           }).toList();
         });
+  }
+
+  void _callClient(String? phone) async {
+    if (phone == null || phone == 'Non disponible' || phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   @override
@@ -153,10 +212,9 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          title: Text(
-            l10n.myRequests,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-          ),
+          title: Text(l10n.myRequests,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
           backgroundColor: Colors.teal,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -167,44 +225,28 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Colors.teal, strokeWidth: 5),
-              );
+                  child: CircularProgressIndicator(
+                      color: Colors.teal, strokeWidth: 5));
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_off_rounded, size: 100, color: Colors.red[300]),
-                      const SizedBox(height: 24),
-                      Text(l10n.errorOccurred, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 12),
-                      Text("${snapshot.error}", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[700])),
-                    ],
-                  ),
-                ),
-              );
+              return Center(child: Text(l10n.errorOccurred));
             }
 
             final requests = snapshot.data ?? [];
 
             if (requests.isEmpty) {
               return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inbox_rounded, size: 120, color: Colors.grey[400]),
-                      const SizedBox(height: 32),
-                      Text(l10n.noRequestsYet, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 16),
-                      Text(l10n.noRequestsYet, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
-                    ],
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_rounded,
+                        size: 120, color: Colors.grey[400]),
+                    const SizedBox(height: 32),
+                    Text(l10n.noRequestsYet,
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.w600)),
+                  ],
                 ),
               );
             }
@@ -214,23 +256,27 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
               itemCount: requests.length,
               itemBuilder: (context, index) {
                 final r = requests[index];
-                final status = r['status'] as String?;
+                final status = r['status'] as String? ?? 'pending';
                 final clientName = r['consumer_name'] as String;
                 final clientPhone = r['consumer_phone'] as String;
                 final productImageUrl = r['product_image_url'] as String?;
+                final int quantityRequested =
+                    (r['quantity_requested'] as num?)?.toInt() ?? 1;
+                final String productId = r['product_id'] as String;
 
-                final bool isFinalStatus = status == 'rejected' || status == 'completed';
+                final bool isFinalStatus =
+                    status == 'rejected' || status == 'completed';
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Image produit + infos client
                         Row(
                           children: [
                             ClipRRect(
@@ -241,62 +287,89 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                                       width: 80,
                                       height: 80,
                                       fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(color: Colors.grey[300]),
-                                      errorWidget: (_, __, ___) => const Icon(Icons.image, size: 50),
+                                      placeholder: (_, __) =>
+                                          Container(color: Colors.grey[300]),
+                                      errorWidget: (_, __, ___) =>
+                                          const Icon(Icons.image, size: 50),
                                     )
-                                  : Container(width: 80, height: 80, color: Colors.grey[300], child: const Icon(Icons.image)),
+                                  : Container(
+                                      width: 80,
+                                      height: 80,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.image)),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(clientName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text(clientName,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 8),
                                   GestureDetector(
                                     onTap: () => _callClient(clientPhone),
                                     child: Text(
                                       clientPhone,
-                                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                      style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(l10n.addressLabel(r['customer_location'] ?? l10n.notSpecified)),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.shopping_basket,
+                                          size: 20, color: Colors.teal),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.quantityRequested.replaceAll(
+                                            '@qty',
+                                            quantityRequested.toString()),
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(l10n.addressLabel(
+                                      r['customer_location'] ??
+                                          l10n.notSpecified)),
                                 ],
                               ),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 20),
-
-                        // Statut actuel + Date
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Chip(
                               backgroundColor: _getStatusColor(status),
-                              label: Text(
-                                _getStatusText(status, l10n),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
+                              label: Text(_getStatusText(status, l10n),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
                             ),
                             Text(
-                              DateFormat('dd MMM HH:mm').format(DateTime.parse(r['created_at'])),
+                              DateFormat('dd MMM HH:mm')
+                                  .format(DateTime.parse(r['created_at'])),
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 16),
-
-                        // Bouton Chat
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             icon: const Icon(Icons.chat_rounded),
                             label: Text(l10n.chat),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -311,16 +384,14 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                             },
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
-                        // Sélecteur de statut (seulement si pas terminé)
                         if (!isFinalStatus)
                           DropdownButtonFormField<String>(
                             value: status,
                             decoration: InputDecoration(
                               labelText: l10n.updateStatus,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                               filled: true,
                               fillColor: Colors.grey[100],
                             ),
@@ -332,16 +403,18 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                             }).toList(),
                             onChanged: (newStatus) {
                               if (newStatus != null && newStatus != status) {
-                                _updateStatus(r['id'].toString(), status ?? 'pending', newStatus);
+                                _updateStatus(r['id'].toString(), status,
+                                    newStatus, quantityRequested, productId);
                               }
                             },
                           ),
-
                         if (isFinalStatus)
                           Center(
                             child: Text(
                               l10n.requestFinalized,
-                              style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                              style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic),
                             ),
                           ),
                       ],

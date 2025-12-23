@@ -114,12 +114,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String pricePerKg(Object price) {
-    return 'Price: $price MRU / kg';
-  }
+  String get pricePerKg => 'MRU/Kg';
 
   @override
-  String get quantityKg => 'Quantity (kg)';
+  String get quantityKg => 'Kg';
 
   @override
   String get deliveryAddress => 'Delivery address';
@@ -287,6 +285,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRequestsYet => 'No requests yet';
 
   @override
+  String get vendorUnknown => 'Vendor unknown';
+
+  @override
+  String get totalLabel => 'Total:';
+
+  @override
+  String get quantityRequested => 'Quantity requested: @qty Kg';
+
+  @override
+  String get insufficientStock => 'Insufficient stock for this order';
+
+  @override
+  String get stockUpdatedSuccessfully => 'Order set to delivery and stock updated';
+
+  @override
+  String get errorUpdatingStock => 'Error updating stock';
+
+  @override
   String requestFrom(Object customerName) {
     return 'Request from $customerName';
   }
@@ -429,7 +445,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusInDelivery => 'In delivery';
 
   @override
-  String get statusCompleted => 'Delivered';
+  String get statusCompleted => 'Completed';
 
   @override
   String get statusUnknown => 'Unknown';
@@ -454,4 +470,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAllSoon => 'Feature coming soon!';
+
+  @override
+  String get enterDeliveryAddress => 'Enter your delivery address';
+
+  @override
+  String get openInGoogleMaps => 'Open in Google Maps';
+
+  @override
+  String get enterAddressFirst => 'Please enter an address first';
+
+  @override
+  String get addressHelpText => 'Type your address and tap the icon to check it on Google Maps';
+
+  @override
+  String get addressRequired => 'Address is required';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get pasteAddress => 'Paste your address';
+
+  @override
+  String get pasteHere => 'Paste the address copied from Google Maps here...';
+
+  @override
+  String get tapToSelectOnMap => 'Tap to open Google Maps and choose your address';
+
+  @override
+  String get mapsInstructions => 'Long-press on the map to drop a pin, then copy the displayed address';
+
+  @override
+  String get mapsHelpText => 'Open the map, long-press to drop a pin, then copy the address shown at the bottom.';
+
+  @override
+  String get confirm => 'Confirm';
 }

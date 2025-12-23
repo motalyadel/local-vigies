@@ -99,6 +99,14 @@
 
   "myRequests": "My Requests",
   "noRequestsYet": "No requests yet",
+  "vendorUnknown": "Vendor unknown",
+  "totalLabel": "Total:",
+  "pricePerKg": "MRU/Kg",
+  "quantityKg": "Kg",
+  "quantityRequested": "Quantity requested: @qty Kg",
+  "insufficientStock": "Insufficient stock for this order",
+  "stockUpdatedSuccessfully": "Order set to delivery and stock updated",
+  "errorUpdatingStock": "Error updating stock",
   "requestFrom": "Request from {customerName}",
   "unknownCustomer": "Unknown customer",
   "requestedAt": "Received at {time}",
@@ -169,5 +177,18 @@
   "viewAllSoon": "Feature coming soon!",
   "statusAccepted": "Accepted",
   "statusInDelivery": "In delivery",
-  "statusCompleted": "Delivered"
+
+  "enterDeliveryAddress": "Enter your delivery address",
+  "openInGoogleMaps": "Open in Google Maps",
+  "enterAddressFirst": "Please enter an address first",
+  "addressHelpText": "Type your address and tap the icon to check it on Google Maps",
+  "addressRequired": "Address is required",
+
+  "next": "Next",
+  "pasteAddress": "Paste your address",
+  "pasteHere": "Paste the address copied from Google Maps here...",
+  "tapToSelectOnMap": "Tap to open Google Maps and choose your address",
+  "mapsInstructions": "Long-press on the map to drop a pin, then copy the displayed address",
+  "mapsHelpText": "Open the map, long-press to drop a pin, then copy the address shown at the bottom.",
+  "confirm": "Confirm"
 }

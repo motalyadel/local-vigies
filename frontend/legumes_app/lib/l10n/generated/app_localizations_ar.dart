@@ -114,12 +114,10 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String pricePerKg(Object price) {
-    return 'السعر: $price MRU / kg';
-  }
+  String get pricePerKg => 'أوقية/كجم';
 
   @override
-  String get quantityKg => 'الكمية (kg)';
+  String get quantityKg => 'كجم';
 
   @override
   String get deliveryAddress => 'عنوان التوصيل';
@@ -188,7 +186,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String stock(Object quantity) {
-    return 'المخزون: $quantity kg';
+    return 'المخزون: $quantity كجم';
   }
 
   @override
@@ -287,6 +285,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noRequestsYet => 'لا توجد طلبات حالياً';
 
   @override
+  String get vendorUnknown => 'البائع غير معروف';
+
+  @override
+  String get totalLabel => 'المجموع :';
+
+  @override
+  String get quantityRequested => 'الكمية المطلوبة: @qty كجم';
+
+  @override
+  String get insufficientStock => 'المخزون غير كافٍ لهذا الطلب';
+
+  @override
+  String get stockUpdatedSuccessfully => 'تم وضع الطلب في التوصيل وتحديث المخزون';
+
+  @override
+  String get errorUpdatingStock => 'خطأ أثناء تحديث المخزون';
+
+  @override
   String requestFrom(Object customerName) {
     return 'طلب من $customerName';
   }
@@ -357,12 +373,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String totalProductsCount(Object count) {
-    return '$count منتج';
+    return '$count منتجات';
   }
 
   @override
   String totalStockKg(Object kg) {
-    return '$kg kg في المخزون';
+    return '$kg كجم في المخزون';
   }
 
   @override
@@ -429,7 +445,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get statusInDelivery => 'في التوصيل';
 
   @override
-  String get statusCompleted => 'تم التسليم';
+  String get statusCompleted => 'مكتملة';
 
   @override
   String get statusUnknown => 'غير معروف';
@@ -454,4 +470,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewAllSoon => 'هذه الميزة قريباً!';
+
+  @override
+  String get enterDeliveryAddress => 'أدخل عنوان التسليم';
+
+  @override
+  String get openInGoogleMaps => 'فتح في خرائط جوجل';
+
+  @override
+  String get enterAddressFirst => 'يرجى إدخال عنوان أولاً';
+
+  @override
+  String get addressHelpText => 'اكتب عنوانك ثم اضغط على الأيقونة للتحقق منه في خرائط جوجل';
+
+  @override
+  String get addressRequired => 'العنوان مطلوب';
+
+  @override
+  String get next => 'التالي';
+
+  @override
+  String get pasteAddress => 'الصق عنوانك';
+
+  @override
+  String get pasteHere => 'الصق العنوان المنسوخ من خرائط جوجل هنا...';
+
+  @override
+  String get tapToSelectOnMap => 'اضغط لفتح خرائط جوجل واختيار عنوانك';
+
+  @override
+  String get mapsInstructions => 'اضغط مطولاً على الخريطة لوضع العلامة، ثم انسخ العنوان المعروض';
+
+  @override
+  String get mapsHelpText => 'افتح الخريطة، اضغط مطولاً لوضع علامة، ثم انسخ العنوان المعروض في الأسفل.';
+
+  @override
+  String get confirm => 'تأكيد';
 }

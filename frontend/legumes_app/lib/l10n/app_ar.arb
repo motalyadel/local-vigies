@@ -64,7 +64,7 @@
 
   "noProductsAddHint": "لا توجد منتجات بعد\nاضغط على + لإضافة منتج",
   "price": "السعر: {price} MRU",
-  "stock": "المخزون: {quantity} kg",
+  "stock": "المخزون: {quantity} كجم",
   "productDate": "التاريخ: {date}",
   "updatePrice": "تحديث السعر",
   "updatePriceTitle": "سعر جديد – {productName}",
@@ -99,6 +99,14 @@
 
   "myRequests": "طلباتي",
   "noRequestsYet": "لا توجد طلبات حالياً",
+  "vendorUnknown": "البائع غير معروف",
+  "totalLabel": "المجموع :",
+  "pricePerKg": "أوقية/كجم",
+  "quantityKg": "كجم",
+  "quantityRequested": "الكمية المطلوبة: @qty كجم",
+  "insufficientStock": "المخزون غير كافٍ لهذا الطلب",
+  "stockUpdatedSuccessfully": "تم وضع الطلب في التوصيل وتحديث المخزون",
+  "errorUpdatingStock": "خطأ أثناء تحديث المخزون",
   "requestFrom": "طلب من {customerName}",
   "unknownCustomer": "عميل غير معروف",
   "requestedAt": "تم الاستلام في {time}",
@@ -126,8 +134,8 @@
   "startConversation": "ابدأ المحادثة!",
   "messageSendFailed": "فشل إرسال الرسالة",
 
-  "totalProductsCount": "{count} منتج",
-  "totalStockKg": "{kg} kg في المخزون",
+  "totalProductsCount": "{count} منتجات",
+  "totalStockKg": "{kg} كجم في المخزون",
 
   "clientsWillContactSoon": "سيتواصل معك عملاؤك قريبًا!",
 
@@ -169,5 +177,18 @@
   "viewAllSoon": "هذه الميزة قريباً!",
   "statusAccepted": "مقبولة",
   "statusInDelivery": "في التوصيل",
-  "statusCompleted": "تم التسليم"
+
+  "enterDeliveryAddress": "أدخل عنوان التسليم",
+  "openInGoogleMaps": "فتح في خرائط جوجل",
+  "enterAddressFirst": "يرجى إدخال عنوان أولاً",
+  "addressHelpText": "اكتب عنوانك ثم اضغط على الأيقونة للتحقق منه في خرائط جوجل",
+  "addressRequired": "العنوان مطلوب",
+
+  "next": "التالي",
+  "pasteAddress": "الصق عنوانك",
+  "pasteHere": "الصق العنوان المنسوخ من خرائط جوجل هنا...",
+  "tapToSelectOnMap": "اضغط لفتح خرائط جوجل واختيار عنوانك",
+  "mapsInstructions": "اضغط مطولاً على الخريطة لوضع العلامة، ثم انسخ العنوان المعروض",
+  "mapsHelpText": "افتح الخريطة، اضغط مطولاً لوضع علامة، ثم انسخ العنوان المعروض في الأسفل.",
+  "confirm": "تأكيد"
 }

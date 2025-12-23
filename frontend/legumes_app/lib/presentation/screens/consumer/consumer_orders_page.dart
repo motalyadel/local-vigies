@@ -21,6 +21,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
   void initState() {
     super.initState();
     _ordersFuture = _loadOrders();
+    _listenToRealtimeUpdates();
   }
 
   Future<List<Map<String, dynamic>>> _loadOrders() async {
@@ -31,41 +32,78 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
       final response = await Supabase.instance.client
           .from('product_requests')
           .select('''
-            id, 
-            status, 
-            created_at, 
-            responded_at, 
+            id,
+            status,
+            created_at,
+            responded_at,
             customer_location,
+            quantity,
             price_at_request,
             product_id,
             products:product_id(id, name, image_url)
           ''')
           .eq('consumer_id', consumerId)
-          .inFilter('status', ['accepted', 'in_delivery', 'completed'])
-          .order('responded_at', ascending: false);
+          .order('created_at', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint("Erreur chargement commandes: $e");
+      debugPrint("Erreur chargement historique demandes: $e");
       return [];
     }
   }
 
+  void _listenToRealtimeUpdates() {
+    ConsumerLocalService.getConsumerId().then((consumerId) {
+      if (consumerId == null) return;
+
+      Supabase.instance.client
+          .channel('consumer_requests_history')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'product_requests',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'consumer_id',
+              value: consumerId,
+            ),
+            callback: (_) {
+              setState(() {
+                _ordersFuture = _loadOrders();
+              });
+            },
+          )
+          .subscribe();
+    });
+  }
+
+  @override
+  void dispose() {
+    Supabase.instance.client.removeChannel(
+      Supabase.instance.client.channel('consumer_requests_history'),
+    );
+    super.dispose();
+  }
+
   String _getStatusText(String? status, AppLocalizations l10n) {
     return switch (status) {
+      'pending' => l10n.statusPending ?? 'En attente',
       'accepted' => l10n.statusAccepted ?? 'Acceptée',
+      'rejected' => l10n.statusRejected ?? 'Refusée',
       'in_delivery' => l10n.statusInDelivery ?? 'En livraison',
       'completed' => l10n.statusCompleted ?? 'Livrée',
-      _ => l10n.statusPending ?? 'En attente',
+      _ => l10n.statusUnknown ?? 'Inconnu',
     };
   }
 
   Color _getStatusColor(String? status) {
     return switch (status) {
+      'pending' => Colors.orange,
       'accepted' => Colors.green,
+      'rejected' => Colors.red,
       'in_delivery' => Colors.blue,
       'completed' => Colors.purple,
-      _ => Colors.orange,
+      _ => Colors.grey,
     };
   }
 
@@ -73,174 +111,169 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.myRequests ?? "Mes commandes"),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _ordersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.green),
-            );
-          }
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.myRequests),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+        ),
+        body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _ordersFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                  child: CircularProgressIndicator(color: Colors.green));
+            }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text("${l10n.errorOccurred}\n${snapshot.error}"),
-            );
-          }
+            if (snapshot.hasError) {
+              return Center(
+                  child: Text("${l10n.errorOccurred}\n${snapshot.error}"));
+            }
 
-          final orders = snapshot.data ?? [];
+            final orders = snapshot.data ?? [];
 
-          if (orders.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox_rounded, size: 100, color: Colors.grey[400]),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.noAcceptedOrders ?? "Aucune commande en cours",
-                    style: const TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
+            if (orders.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.history, size: 100, color: Colors.grey[400]),
+                    const SizedBox(height: 24),
+                    Text(
+                      l10n.noRequestsYet,
+                      style: const TextStyle(fontSize: 18),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final req = orders[index];
-              final product = req['products'] as Map<String, dynamic>;
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final req = orders[index];
+                final product = req['products'] as Map<String, dynamic>;
 
-              final String? imageUrl = product['image_url'] as String?;
-              final String productName =
-                  product['name'] as String? ?? 'Produit inconnu';
-              final dynamic priceAtRequest = req['price_at_request'] ?? 0;
+                final String? imageUrl = product['image_url'] as String?;
+                final String productName =
+                    product['name'] as String? ?? 'Produit inconnu';
+                final dynamic priceAtRequest = req['price_at_request'] ?? 0;
+                final int quantity = (req['quantity'] as num?)?.toInt() ?? 1;
+                final num totalPrice = priceAtRequest * quantity;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: imageUrl != null && imageUrl.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                        color: Colors.grey[300],
-                                        child: const Center(
-                                            child:
-                                                CircularProgressIndicator())),
-                                    errorWidget: (_, __, ___) => Container(
-                                        color: Colors.grey[300],
-                                        child: const Icon(Icons.broken_image,
-                                            size: 40)),
-                                  )
-                                : Container(
-                                    width: 80,
-                                    height: 80,
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.image,
-                                        size: 40, color: Colors.grey),
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: imageUrl != null && imageUrl.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) =>
+                                          Container(color: Colors.grey[300]),
+                                      errorWidget: (_, __, ___) => Container(
+                                          color: Colors.grey[300],
+                                          child:
+                                              const Icon(Icons.broken_image)),
+                                    )
+                                  : Container(
+                                      width: 80,
+                                      height: 80,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.image)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(productName,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                      "$quantity ${l10n.quantityKg} $priceAtRequest ${l10n.pricePerKg}",
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    "${l10n.totalLabel} $totalPrice MRU",
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green),
                                   ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                                  const SizedBox(height: 4),
+                                  Text(l10n.vendorUnknown,
+                                      style:
+                                          TextStyle(color: Colors.grey[600])),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Chip(
+                              backgroundColor: _getStatusColor(req['status']),
+                              label: Text(_getStatusText(req['status'], l10n),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                            Text(
+                              DateFormat('dd MMM yyyy HH:mm')
+                                  .format(DateTime.parse(req['created_at'])),
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        if (req['customer_location'] != null &&
+                            req['customer_location']
+                                .toString()
+                                .trim()
+                                .isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
                               children: [
-                                Text(
-                                  productName,
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "$priceAtRequest MRU",
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.green),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Vendeur inconnu", // À améliorer plus tard avec table vendors
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
+                                const Icon(Icons.location_on, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(
+                                        req['customer_location'].toString())),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Chip(
-                            backgroundColor: _getStatusColor(req['status']),
-                            label: Text(
-                              _getStatusText(req['status'], l10n),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          Text(
-                            req['responded_at'] != null
-                                ? DateFormat('dd MMM yyyy HH:mm')
-                                    .format(DateTime.parse(req['responded_at']))
-                                : DateFormat('dd MMM yyyy HH:mm')
-                                    .format(DateTime.parse(req['created_at'])),
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                      if (req['customer_location'] != null &&
-                          req['customer_location'].toString().trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_on,
-                                  size: 20, color: Colors.grey),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  req['customer_location'].toString(),
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

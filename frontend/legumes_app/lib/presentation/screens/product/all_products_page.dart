@@ -30,7 +30,8 @@ class AllProductsPage extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded, size: 28),
                 tooltip: l10n.refresh,
                 onPressed: () {
-                  Provider.of<ProductManagementController>(context, listen: false)
+                  Provider.of<ProductManagementController>(context,
+                          listen: false)
                       .loadAllProducts();
                 },
               ),
@@ -44,7 +45,7 @@ class AllProductsPage extends StatelessWidget {
                     child: CircularProgressIndicator(
                         color: Colors.blue, strokeWidth: 5));
               }
-        
+
               if (controller.error != null) {
                 return Center(
                   child: Padding(
@@ -77,7 +78,7 @@ class AllProductsPage extends StatelessWidget {
                   ),
                 );
               }
-        
+
               if (controller.products.isEmpty) {
                 return Center(
                   child: Padding(
@@ -95,7 +96,8 @@ class AllProductsPage extends StatelessWidget {
                                 color: Colors.grey),
                             textAlign: TextAlign.center),
                         const SizedBox(height: 16),
-                        Text("Revenez plus tard pour découvrir les nouveautés !",
+                        Text(
+                            "Revenez plus tard pour découvrir les nouveautés !",
                             style: TextStyle(color: Colors.grey[600]),
                             textAlign: TextAlign.center),
                       ],
@@ -103,7 +105,7 @@ class AllProductsPage extends StatelessWidget {
                   ),
                 );
               }
-        
+
               return RefreshIndicator(
                 onRefresh: controller.loadAllProducts,
                 color: Colors.blue,
@@ -112,7 +114,7 @@ class AllProductsPage extends StatelessWidget {
                   itemCount: controller.products.length,
                   itemBuilder: (context, i) {
                     final p = controller.products[i];
-        
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
@@ -132,7 +134,8 @@ class AllProductsPage extends StatelessWidget {
                             // Image du produit
                             ClipRRect(
                               borderRadius: BorderRadius.circular(20),
-                              child: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                              child: p.imageUrl != null &&
+                                      p.imageUrl!.isNotEmpty
                                   ? Image.network(
                                       p.imageUrl!,
                                       width: 100,
@@ -167,7 +170,7 @@ class AllProductsPage extends StatelessWidget {
                                     ),
                             ),
                             const SizedBox(width: 20),
-        
+
                             // Infos produit
                             Expanded(
                               child: Column(
@@ -191,28 +194,28 @@ class AllProductsPage extends StatelessWidget {
                                   const SizedBox(height: 12),
                                   Row(
                                     children: [
-                                      const Icon(Icons.attach_money_rounded,
-                                          size: 18, color: Colors.green),
-                                      const SizedBox(width: 4),
+                                      // const Icon(Icons.attach_money_rounded,
+                                      //     size: 18, color: Colors.green),
+                                      // const SizedBox(width: 4),
                                       Text(
-                                        "${p.price.toStringAsFixed(0)} MRU",
+                                        "${p.price.toStringAsFixed(0)} ${l10n.pricePerKg}",
                                         style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.green),
                                       ),
                                       const SizedBox(width: 10),
-                                      const Icon(Icons.inventory_rounded,
-                                          size: 18, color: Colors.blue),
-                                      const SizedBox(width: 4),
-                                      Text("${p.quantity} kg",
+                                      // const Icon(Icons.inventory_rounded,
+                                      //     size: 18, color: Colors.blue),
+                                      // const SizedBox(width: 4),
+                                      Text("${p.quantity} ${l10n.quantityKg}",
                                           style: const TextStyle(fontSize: 16)),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-        
+
                             // Avatar du vendeur
                             CircleAvatar(
                               radius: 28,

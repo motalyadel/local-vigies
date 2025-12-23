@@ -310,13 +310,13 @@ abstract class AppLocalizations {
   /// No description provided for @pricePerKg.
   ///
   /// In en, this message translates to:
-  /// **'Price: {price} MRU / kg'**
-  String pricePerKg(Object price);
+  /// **'MRU/Kg'**
+  String get pricePerKg;
 
   /// No description provided for @quantityKg.
   ///
   /// In en, this message translates to:
-  /// **'Quantity (kg)'**
+  /// **'Kg'**
   String get quantityKg;
 
   /// No description provided for @deliveryAddress.
@@ -625,6 +625,42 @@ abstract class AppLocalizations {
   /// **'No requests yet'**
   String get noRequestsYet;
 
+  /// No description provided for @vendorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor unknown'**
+  String get vendorUnknown;
+
+  /// No description provided for @totalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total:'**
+  String get totalLabel;
+
+  /// No description provided for @quantityRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity requested: @qty Kg'**
+  String get quantityRequested;
+
+  /// No description provided for @insufficientStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient stock for this order'**
+  String get insufficientStock;
+
+  /// No description provided for @stockUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Order set to delivery and stock updated'**
+  String get stockUpdatedSuccessfully;
+
+  /// No description provided for @errorUpdatingStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating stock'**
+  String get errorUpdatingStock;
+
   /// No description provided for @requestFrom.
   ///
   /// In en, this message translates to:
@@ -880,7 +916,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Delivered'**
+  /// **'Completed'**
   String get statusCompleted;
 
   /// No description provided for @statusUnknown.
@@ -930,6 +966,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Feature coming soon!'**
   String get viewAllSoon;
+
+  /// No description provided for @enterDeliveryAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your delivery address'**
+  String get enterDeliveryAddress;
+
+  /// No description provided for @openInGoogleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Google Maps'**
+  String get openInGoogleMaps;
+
+  /// No description provided for @enterAddressFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an address first'**
+  String get enterAddressFirst;
+
+  /// No description provided for @addressHelpText.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your address and tap the icon to check it on Google Maps'**
+  String get addressHelpText;
+
+  /// No description provided for @addressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Address is required'**
+  String get addressRequired;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @pasteAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste your address'**
+  String get pasteAddress;
+
+  /// No description provided for @pasteHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the address copied from Google Maps here...'**
+  String get pasteHere;
+
+  /// No description provided for @tapToSelectOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open Google Maps and choose your address'**
+  String get tapToSelectOnMap;
+
+  /// No description provided for @mapsInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press on the map to drop a pin, then copy the displayed address'**
+  String get mapsInstructions;
+
+  /// No description provided for @mapsHelpText.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the map, long-press to drop a pin, then copy the address shown at the bottom.'**
+  String get mapsHelpText;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

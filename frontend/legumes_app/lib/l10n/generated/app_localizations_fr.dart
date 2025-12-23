@@ -114,12 +114,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String pricePerKg(Object price) {
-    return 'Prix : $price MRU / kg';
-  }
+  String get pricePerKg => 'MRU/Kg';
 
   @override
-  String get quantityKg => 'Quantité (kg)';
+  String get quantityKg => 'Kg';
 
   @override
   String get deliveryAddress => 'Adresse de livraison';
@@ -188,7 +186,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String stock(Object quantity) {
-    return 'Stock : $quantity K';
+    return 'Stock : $quantity Kg';
   }
 
   @override
@@ -285,6 +283,24 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noRequestsYet => 'Aucune demande pour le moment';
+
+  @override
+  String get vendorUnknown => 'Vendeur inconnu';
+
+  @override
+  String get totalLabel => 'Total :';
+
+  @override
+  String get quantityRequested => 'Quantité demandée : @qty Kg';
+
+  @override
+  String get insufficientStock => 'Stock insuffisant pour honorer cette commande';
+
+  @override
+  String get stockUpdatedSuccessfully => 'Commande mise en livraison et stock mis à jour';
+
+  @override
+  String get errorUpdatingStock => 'Erreur lors de la mise à jour du stock';
 
   @override
   String requestFrom(Object customerName) {
@@ -429,7 +445,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get statusInDelivery => 'En livraison';
 
   @override
-  String get statusCompleted => 'Livrée';
+  String get statusCompleted => 'Terminée';
 
   @override
   String get statusUnknown => 'Inconnu';
@@ -454,4 +470,40 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get viewAllSoon => 'Fonctionnalité bientôt disponible !';
+
+  @override
+  String get enterDeliveryAddress => 'Entrez votre adresse de livraison';
+
+  @override
+  String get openInGoogleMaps => 'Ouvrir dans Google Maps';
+
+  @override
+  String get enterAddressFirst => 'Veuillez d\'abord saisir une adresse';
+
+  @override
+  String get addressHelpText => 'Tapez votre adresse et appuyez sur l\'icône pour vérifier sur Google Maps';
+
+  @override
+  String get addressRequired => 'L\'adresse est obligatoire';
+
+  @override
+  String get next => 'Suivant';
+
+  @override
+  String get pasteAddress => 'Collez votre adresse';
+
+  @override
+  String get pasteHere => 'Collez l\'adresse copiée depuis Google Maps ici...';
+
+  @override
+  String get tapToSelectOnMap => 'Touchez pour ouvrir Google Maps et choisir votre adresse';
+
+  @override
+  String get mapsInstructions => 'Cliquez longuement sur la carte pour placer le marqueur, puis copiez l\'adresse affichée';
+
+  @override
+  String get mapsHelpText => 'Ouvrez la carte, cliquez longuement pour placer un marqueur, puis copiez l\'adresse affichée en bas.';
+
+  @override
+  String get confirm => 'Confirmer';
 }
