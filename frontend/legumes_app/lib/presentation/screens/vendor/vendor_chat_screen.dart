@@ -32,6 +32,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
   @override
   void initState() {
     super.initState();
+
     final currentUserId = Supabase.instance.client.auth.currentUser!.id;
     _vendor = types.User(id: currentUserId);
     _consumer = types.User(
@@ -40,9 +41,9 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
       metadata: {'phone': widget.consumerPhone},
     );
 
-    _markMessagesAsRead();
     _loadMessages();
-    _listenToRealtime();
+    _setupRealtimeListener();
+    _markMessagesAsRead();
   }
 
   Future<void> _loadMessages() async {
@@ -56,11 +57,16 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
 
       final List<types.Message> loaded = response.map<types.TextMessage>((msg) {
         final isFromVendor = msg['sender_type'] == 'vendor';
+        final bool isRead = msg['read'] == true;
+
         return types.TextMessage(
           author: isFromVendor ? _vendor : _consumer,
           createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
           id: msg['id'].toString(),
           text: msg['text'] as String,
+          status: isFromVendor
+              ? types.Status.sent
+              : (isRead ? types.Status.seen : types.Status.delivered),
         );
       }).toList();
 
@@ -74,21 +80,51 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
     }
   }
 
-  void _listenToRealtime() {
+  void _setupRealtimeListener() {
     Supabase.instance.client
-        .from('messages')
-        .stream(primaryKey: ['id']).listen((data) {
-      final filtered = data.where((msg) =>
-          (msg['vendor_id'] == _vendor.id &&
-              msg['consumer_id'] == widget.consumerId) ||
-          (msg['consumer_id'] == widget.consumerId &&
-              msg['vendor_id'] == _vendor.id));
+        .channel('messages_channel')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'vendor_id',
+            value: _vendor.id,
+          ),
+          callback: (payload) {
+            final newMsg = payload.newRecord;
 
-      if (filtered.isNotEmpty) {
-        _loadMessages();
-        _markMessagesAsRead();
-      }
-    });
+            // Vérifie que le message concerne bien cette conversation
+            if (newMsg['consumer_id'] != widget.consumerId) return;
+
+            final isFromVendor = newMsg['sender_type'] == 'vendor';
+            final bool isRead = newMsg['read'] == true;
+
+            final newTextMessage = types.TextMessage(
+              author: isFromVendor ? _vendor : _consumer,
+              createdAt:
+                  DateTime.parse(newMsg['created_at']).millisecondsSinceEpoch,
+              id: newMsg['id'].toString(),
+              text: newMsg['text'] as String,
+              status: isFromVendor
+                  ? types.Status.sent
+                  : (isRead ? types.Status.seen : types.Status.delivered),
+            );
+
+            if (mounted) {
+              setState(() {
+                _messages = [newTextMessage, ..._messages];
+              });
+            }
+
+            // Si c'est un message du consumer → marquer comme lu
+            if (!isFromVendor) {
+              _markMessagesAsRead();
+            }
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -102,6 +138,18 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
           .eq('read', false);
 
       widget.onMessagesRead?.call();
+
+      // Mise à jour visuelle : passer les messages du consumer à "seen"
+      if (mounted) {
+        setState(() {
+          _messages = _messages.map((m) {
+            if (m is types.TextMessage && m.author.id == widget.consumerId) {
+              return m.copyWith(status: types.Status.seen);
+            }
+            return m;
+          }).toList();
+        });
+      }
     } catch (e) {
       debugPrint("Erreur marquage messages lus: $e");
     }
@@ -113,6 +161,7 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       text: message.text,
+      status: types.Status.sending,
     );
 
     setState(() {
@@ -120,11 +169,26 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
     });
 
     try {
-      await Supabase.instance.client.from('messages').insert({
-        'text': message.text,
-        'sender_type': 'vendor',
-        'vendor_id': _vendor.id,
-        'consumer_id': widget.consumerId,
+      final response = await Supabase.instance.client
+          .from('messages')
+          .insert({
+            'text': message.text,
+            'sender_type': 'vendor',
+            'vendor_id': _vendor.id,
+            'consumer_id': widget.consumerId,
+            'read': false,
+          })
+          .select()
+          .single();
+
+      setState(() {
+        final index = _messages.indexWhere((m) => m.id == tempMessage.id);
+        if (index != -1) {
+          _messages[index] = tempMessage.copyWith(
+            id: response['id'].toString(),
+            status: types.Status.sent,
+          );
+        }
       });
     } catch (e) {
       setState(() {
@@ -140,6 +204,13 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
   }
 
   @override
+  void dispose() {
+    Supabase.instance.client
+        .removeChannel(Supabase.instance.client.channel('messages_channel'));
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -149,38 +220,17 @@ class _VendorChatScreenState extends State<VendorChatScreen> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.consumerName,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "${l10n.phonePrefix}: ${widget.consumerPhone}",
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
-              ),
+              Text(widget.consumerName,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text("${l10n.phonePrefix}: ${widget.consumerPhone}",
+                  style: const TextStyle(fontSize: 13, color: Colors.white70)),
             ],
           ),
           backgroundColor: Colors.teal,
           foregroundColor: Colors.white,
         ),
-        body:
-            // _messages.isEmpty
-            //     ? Center(
-            //         child: Column(
-            //           mainAxisAlignment: MainAxisAlignment.center,
-            //           children: [
-            //             const Icon(Icons.chat_bubble_outline,
-            //                 size: 80, color: Colors.grey),
-            //             const SizedBox(height: 16),
-            //             Text(l10n.noMessagesYet,
-            //                 style: const TextStyle(fontSize: 18)),
-            //             Text(l10n.startConversation,
-            //                 style: TextStyle(color: Colors.grey[600])),
-            //           ],
-            //         ),
-            //       )
-            //     :
-            Chat(
+        body: Chat(
           messages: _messages,
           onSendPressed: _handleSendPressed,
           user: _vendor,

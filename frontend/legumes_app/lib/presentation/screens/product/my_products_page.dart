@@ -218,6 +218,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
       
                   return Card(
                     elevation: 8,
+                    color: Colors.white,
                     shadowColor: Colors.black.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20)),

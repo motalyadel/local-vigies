@@ -270,6 +270,7 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                   child: Padding(
@@ -368,7 +369,7 @@ class _VendorRequestsPageState extends State<VendorRequestsPage> {
                             icon: const Icon(Icons.chat_rounded),
                             label: Text(l10n.chat),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
+                                backgroundColor: const Color.fromARGB(255, 0, 164, 190),
                                 foregroundColor: Colors.white),
                             onPressed: () {
                               Navigator.push(

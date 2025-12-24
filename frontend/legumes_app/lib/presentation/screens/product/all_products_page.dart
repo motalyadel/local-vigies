@@ -21,7 +21,7 @@ class AllProductsPage extends StatelessWidget {
             title: Text(l10n.allProducts,
                 style:
                     const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-            backgroundColor: Colors.blue,
+            backgroundColor: Color.fromARGB(255, 0, 164, 190),
             foregroundColor: Colors.white,
             elevation: 0,
             centerTitle: true,
@@ -43,7 +43,8 @@ class AllProductsPage extends StatelessWidget {
               if (controller.loading) {
                 return const Center(
                     child: CircularProgressIndicator(
-                        color: Colors.blue, strokeWidth: 5));
+                        color: Color.fromARGB(255, 0, 164, 190),
+                        strokeWidth: 5));
               }
 
               if (controller.error != null) {
@@ -69,7 +70,7 @@ class AllProductsPage extends StatelessWidget {
                           icon: const Icon(Icons.refresh),
                           label: Text(l10n.retry),
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: Color.fromARGB(255, 0, 164, 190),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 32, vertical: 16)),
                         ),
@@ -108,7 +109,7 @@ class AllProductsPage extends StatelessWidget {
 
               return RefreshIndicator(
                 onRefresh: controller.loadAllProducts,
-                color: Colors.blue,
+                color: Color.fromARGB(255, 0, 164, 190),
                 child: ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                   itemCount: controller.products.length,
@@ -148,7 +149,7 @@ class AllProductsPage extends StatelessWidget {
                                       //       color: Colors.grey[200],
                                       //       child: const Center(
                                       //           child: CircularProgressIndicator(
-                                      //               color: Colors.blue)));
+                                      //               color: Color.fromARGB(255, 0, 164, 190))));
                                       // },
                                       errorBuilder: (_, __, ___) => Container(
                                         width: 100,
@@ -169,7 +170,7 @@ class AllProductsPage extends StatelessWidget {
                                           size: 50, color: Colors.grey),
                                     ),
                             ),
-                            const SizedBox(width: 20),
+                            const SizedBox(width: 16),
 
                             // Infos produit
                             Expanded(
@@ -206,7 +207,7 @@ class AllProductsPage extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 10),
                                       // const Icon(Icons.inventory_rounded,
-                                      //     size: 18, color: Colors.blue),
+                                      //     size: 18, color: Color.fromARGB(255, 0, 164, 190)),
                                       // const SizedBox(width: 4),
                                       Text("${p.quantity} ${l10n.quantityKg}",
                                           style: const TextStyle(fontSize: 16)),
@@ -223,7 +224,7 @@ class AllProductsPage extends StatelessWidget {
                                       p.vendorPhotoUrl!.isNotEmpty
                                   ? NetworkImage(p.vendorPhotoUrl!)
                                   : null,
-                              backgroundColor: Colors.blue,
+                              backgroundColor: Color.fromARGB(255, 0, 164, 190),
                               child: p.vendorPhotoUrl == null ||
                                       p.vendorPhotoUrl!.isEmpty
                                   ? const Icon(Icons.person,

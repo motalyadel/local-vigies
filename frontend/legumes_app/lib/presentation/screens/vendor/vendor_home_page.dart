@@ -31,7 +31,8 @@ class VendorHomePage extends StatelessWidget {
         if (auth.loading) {
           return const SafeArea(
             child: Scaffold(
-              body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+              body:
+                  Center(child: CircularProgressIndicator(color: Colors.teal)),
             ),
           );
         }
@@ -45,8 +46,10 @@ class VendorHomePage extends StatelessWidget {
         }
 
         // === Accès aux controllers (sans listen pour éviter rebuild inutiles) ===
-        final productCtrl = Provider.of<ProductManagementController>(context, listen: false);
-        final notiCtrl = Provider.of<NotificationController>(context, listen: false);
+        final productCtrl =
+            Provider.of<ProductManagementController>(context, listen: false);
+        final notiCtrl =
+            Provider.of<NotificationController>(context, listen: false);
 
         // === Chargement initial unique (produits + notifications) ===
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,6 +67,7 @@ class VendorHomePage extends StatelessWidget {
               backgroundColor: Colors.teal,
               foregroundColor: Colors.white,
               elevation: 0,
+              automaticallyImplyLeading: false,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.language),
@@ -100,7 +104,7 @@ class VendorHomePage extends StatelessWidget {
                         ],
                       ),
                     );
-          
+
                     if (confirm == true) {
                       await auth.signOut();
                     }
@@ -113,7 +117,7 @@ class VendorHomePage extends StatelessWidget {
                 final totalProducts = ctrl.products.length;
                 final totalStock =
                     ctrl.products.fold<int>(0, (sum, p) => sum + p.quantity);
-          
+
                 return RefreshIndicator(
                   onRefresh: () async {
                     await ctrl.loadProducts();
@@ -140,7 +144,7 @@ class VendorHomePage extends StatelessWidget {
                                   builder: (_) => const MyProductsPage())),
                         ),
                         const SizedBox(height: 24),
-          
+
                         // ===== Statistiques rapides =====
                         Row(
                           children: [
@@ -152,12 +156,15 @@ class VendorHomePage extends StatelessWidget {
                                     Colors.blue)),
                             const SizedBox(width: 12),
                             Expanded(
-                                child: _buildStatCard(l10n.totalStock,
-                                    "$totalStock kg", Icons.scale, Colors.green)),
+                                child: _buildStatCard(
+                                    l10n.totalStock,
+                                    "$totalStock kg",
+                                    Icons.scale,
+                                    Colors.green)),
                           ],
                         ),
                         const SizedBox(height: 32),
-          
+
                         // ===== Actions rapides =====
                         _buildQuickActionTile(
                           icon: Icons.add_box_rounded,
@@ -186,7 +193,8 @@ class VendorHomePage extends StatelessWidget {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const VendorChatListScreen()),
+                                    builder: (_) =>
+                                        const VendorChatListScreen()),
                               ),
                             ),
                             Consumer<NotificationController>(
@@ -221,11 +229,12 @@ class VendorHomePage extends StatelessWidget {
                             ),
                           ],
                         ),
-          
+
                         const SizedBox(height: 32),
                         Text(
                           '${l10n.lastUpdate}: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          style:
+                              TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),

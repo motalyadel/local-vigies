@@ -1382,6 +1382,8 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
 // ========================================
 // presentation/pages/chat/consumer_chat_screen.dart
 
+// presentation/pages/chat/consumer_chat_screen.dart
+
 class ConsumerChatScreen extends StatefulWidget {
   final Product product;
   final String consumerId;
@@ -1404,15 +1406,16 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
   @override
   void initState() {
     super.initState();
+
     _consumer = types.User(id: widget.consumerId);
     _vendor = types.User(
       id: widget.product.vendorId,
       firstName: widget.product.vendorShopName ?? "Vendeur",
     );
 
-    _markVendorMessagesAsRead();
     _loadMessages();
-    _listenToRealtime();
+    _setupRealtimeListener();
+    _markVendorMessagesAsRead();
   }
 
   Future<void> _loadMessages() async {
@@ -1426,11 +1429,16 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
 
       final List<types.Message> loaded = response.map<types.TextMessage>((msg) {
         final isFromVendor = msg['sender_type'] == 'vendor';
+        final bool isRead = msg['read'] == true;
+
         return types.TextMessage(
           author: isFromVendor ? _vendor : _consumer,
           createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
           id: msg['id'].toString(),
           text: msg['text'] as String,
+          status: isFromVendor
+              ? (isRead ? types.Status.seen : types.Status.delivered)
+              : types.Status.sent,
         );
       }).toList();
 
@@ -1444,19 +1452,52 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
     }
   }
 
-  void _listenToRealtime() {
+  void _setupRealtimeListener() {
     Supabase.instance.client
-        .from('messages')
-        .stream(primaryKey: ['id']).listen((data) {
-      final filtered = data.where((msg) =>
-          (msg['vendor_id'] == widget.product.vendorId &&
-              msg['consumer_id'] == widget.consumerId));
+        .channel(
+            'consumer_chat_${widget.consumerId}_${widget.product.vendorId}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'consumer_id',
+            value: widget.consumerId,
+          ),
+          callback: (payload) {
+            final newMsg = payload.newRecord;
 
-      if (filtered.isNotEmpty) {
-        _loadMessages();
-        _markVendorMessagesAsRead();
-      }
-    });
+            // Vérifie que le message concerne bien ce vendor
+            if (newMsg['vendor_id'] != widget.product.vendorId) return;
+
+            final isFromVendor = newMsg['sender_type'] == 'vendor';
+            final bool isRead = newMsg['read'] == true;
+
+            final newTextMessage = types.TextMessage(
+              author: isFromVendor ? _vendor : _consumer,
+              createdAt:
+                  DateTime.parse(newMsg['created_at']).millisecondsSinceEpoch,
+              id: newMsg['id'].toString(),
+              text: newMsg['text'] as String,
+              status: isFromVendor
+                  ? (isRead ? types.Status.seen : types.Status.delivered)
+                  : types.Status.sent,
+            );
+
+            if (mounted) {
+              setState(() {
+                _messages = [newTextMessage, ..._messages];
+              });
+            }
+
+            // Si c'est un message du vendor → on le marque comme lu
+            if (isFromVendor) {
+              _markVendorMessagesAsRead();
+            }
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _markVendorMessagesAsRead() async {
@@ -1468,17 +1509,32 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
           .eq('vendor_id', widget.product.vendorId)
           .eq('sender_type', 'vendor')
           .eq('read', false);
+
+      // Mise à jour visuelle : passer les messages du vendor à "seen"
+      if (mounted) {
+        setState(() {
+          _messages = _messages.map((m) {
+            if (m is types.TextMessage &&
+                m.author.id == widget.product.vendorId) {
+              return m.copyWith(status: types.Status.seen);
+            }
+            return m;
+          }).toList();
+        });
+      }
     } catch (e) {
       debugPrint("Erreur marquage messages lus: $e");
     }
   }
 
   void _handleSendPressed(types.PartialText message) async {
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final tempMessage = types.TextMessage(
       author: _consumer,
       createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: tempId,
       text: message.text,
+      status: types.Status.sending,
     );
 
     setState(() {
@@ -1486,16 +1542,31 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
     });
 
     try {
-      await Supabase.instance.client.from('messages').insert({
-        'text': message.text,
-        'sender_type': 'consumer',
-        'consumer_id': widget.consumerId,
-        'vendor_id': widget.product.vendorId,
-        'product_id': widget.product.id,
+      final response = await Supabase.instance.client
+          .from('messages')
+          .insert({
+            'text': message.text,
+            'sender_type': 'consumer',
+            'consumer_id': widget.consumerId,
+            'vendor_id': widget.product.vendorId,
+            'product_id': widget.product.id,
+            'read': false,
+          })
+          .select()
+          .single();
+
+      setState(() {
+        final index = _messages.indexWhere((m) => m.id == tempId);
+        if (index != -1) {
+          _messages[index] = tempMessage.copyWith(
+            id: response['id'].toString(),
+            status: types.Status.sent,
+          );
+        }
       });
     } catch (e) {
       setState(() {
-        _messages.removeWhere((m) => m.id == tempMessage.id);
+        _messages.removeWhere((m) => m.id == tempId);
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1509,6 +1580,15 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
   }
 
   @override
+  void dispose() {
+    Supabase.instance.client.removeChannel(
+      Supabase.instance.client.channel(
+          'consumer_chat_${widget.consumerId}_${widget.product.vendorId}'),
+    );
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -1518,24 +1598,7 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
-      body:
-          // _messages.isEmpty
-          //     ? Center(
-          //         child: Column(
-          //           mainAxisAlignment: MainAxisAlignment.center,
-          //           children: [
-          //             const Icon(Icons.chat_bubble_outline,
-          //                 size: 80, color: Colors.grey),
-          //             const SizedBox(height: 16),
-          //             Text(l10n.noMessagesYet,
-          //                 style: const TextStyle(fontSize: 18)),
-          //             Text(l10n.startConversation,
-          //                 style: TextStyle(color: Colors.grey[600])),
-          //           ],
-          //         ),
-          //       )
-          //     :
-          Chat(
+      body: Chat(
         messages: _messages,
         onSendPressed: _handleSendPressed,
         user: _consumer,
