@@ -100,7 +100,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title:
-            Text(l10n.deleteProduct, style: const TextStyle(color: Colors.red)),
+            Text("${l10n.deleteProduct}", style: const TextStyle(color: Colors.red)),
         content: Text(l10n.deleteProductConfirm),
         actions: [
           TextButton(

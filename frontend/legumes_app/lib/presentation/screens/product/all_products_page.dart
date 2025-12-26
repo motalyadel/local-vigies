@@ -209,7 +209,7 @@ class AllProductsPage extends StatelessWidget {
                                       // const Icon(Icons.inventory_rounded,
                                       //     size: 18, color: Color.fromARGB(255, 0, 164, 190)),
                                       // const SizedBox(width: 4),
-                                      Text("${p.quantity} ${l10n.quantityKg}",
+                                      Text("${p.quantity} ${l10n.kilogram}",
                                           style: const TextStyle(fontSize: 16)),
                                     ],
                                   ),

@@ -38,6 +38,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
             responded_at,
             customer_location,
             quantity,
+            vendor_shop_name,
             price_at_request,
             product_id,
             products:product_id(id, name, image_url)
@@ -113,6 +114,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
 
     return SafeArea(
       child: Scaffold(
+        backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: Text(l10n.myRequests),
           backgroundColor: Colors.teal,
@@ -159,6 +161,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
                 final product = req['products'] as Map<String, dynamic>;
 
                 final String? imageUrl = product['image_url'] as String?;
+                final String? vendor_shop_name = req['vendor_shop_name'] as String?;
                 final String productName =
                     product['name'] as String? ?? 'Produit inconnu';
                 final dynamic priceAtRequest = req['price_at_request'] ?? 0;
@@ -168,6 +171,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                   child: Padding(
@@ -209,7 +213,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
                                           fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 4),
                                   Text(
-                                      "$quantity ${l10n.quantityKg} $priceAtRequest ${l10n.pricePerKg}",
+                                      "$quantity ${l10n.kilogram} $priceAtRequest ${l10n.pricePerKg}",
                                       style: const TextStyle(
                                           fontSize: 16,
                                           color: Colors.green,
@@ -223,7 +227,7 @@ class _ConsumerOrdersPageState extends State<ConsumerOrdersPage> {
                                         color: Colors.green),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(l10n.vendorUnknown,
+                                  Text("$vendor_shop_name",
                                       style:
                                           TextStyle(color: Colors.grey[600])),
                                 ],

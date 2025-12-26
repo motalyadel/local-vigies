@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 class AppColors {
   static const Color primary = Color(0xFF4CAF50);
   static const Color secondary = Color(0xFFFF9800);
-  static const Color background = Color(0xFFF5F5F5);
+  static const Color  background = Color(0xFFFAFAFA);
   static const Color surface = Colors.white;
   static const Color textPrimary = Color(0xFF2E2E2E);
   static const Color error = Color(0xFFE53935);
@@ -52,13 +52,12 @@ class _LoginPageState extends State<LoginPage> {
         print('Connexion réussie !');
 
         // Seulement en cas de succès → on redirige via AuthController
-        final authController =
-            Provider.of<AuthController>(context, listen: false);
+        final authController = Provider.of<AuthController>(context, listen: false);
         await authController.redirect();
       } else {
         // Échec de connexion → on reste sur la page login et on affiche un message
         setState(() {
-          _error = "invalidCredentials"; // Message localisé
+          _error = AppLocalizations.of(context)!.invalidCredentials; // Message localisé
         });
       }
     } catch (e, s) {
@@ -67,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
 
       // Erreur technique → message générique mais on reste sur la page
       setState(() {
-        _error = "Une erreur est survenue. Réessayez.";
+        _error = AppLocalizations.of(context)!.loginError ?? "Une erreur est survenue. Réessayez.";
       });
     } finally {
       setState(() {
@@ -90,8 +89,7 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.all(24),
             child: Card(
               elevation: 8,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               color: AppColors.surface,
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -100,8 +98,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.local_grocery_store,
-                          size: 80, color: AppColors.primary),
+                      const Icon(Icons.local_grocery_store, size: 80, color: AppColors.primary),
                       const SizedBox(height: 16),
                       Text(
                         l10n.connexionAuMarche,
@@ -121,8 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                           prefixIcon: const Icon(Icons.email),
                           filled: true,
                           fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         validator: (val) => val != null && val.contains('@')
                             ? null
@@ -138,8 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                           prefixIcon: const Icon(Icons.lock),
                           filled: true,
                           fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         validator: (val) => val != null && val.length >= 6
                             ? null
@@ -150,25 +145,20 @@ class _LoginPageState extends State<LoginPage> {
                       if (_error != null) ...[
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: AppColors.error.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: AppColors.error.withOpacity(0.3)),
+                            border: Border.all(color: AppColors.error.withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline,
-                                  color: AppColors.error, size: 20),
+                              const Icon(Icons.error_outline, color: AppColors.error, size: 20),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   _error!,
-                                  style: const TextStyle(
-                                      color: AppColors.error,
-                                      fontWeight: FontWeight.w600),
+                                  style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
@@ -182,16 +172,13 @@ class _LoginPageState extends State<LoginPage> {
                         width: double.infinity,
                         height: 50,
                         child: _isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                    color: AppColors.primary))
+                            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                             : ElevatedButton(
                                 onPressed: _login,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 child: Text(l10n.login),
                               ),
@@ -211,12 +198,9 @@ class _LoginPageState extends State<LoginPage> {
                       IconButton(
                         onPressed: () {
                           final current = localeProvider.locale.languageCode;
-                          localeProvider.changeLocale(current == 'fr'
-                              ? const Locale('ar')
-                              : const Locale('fr'));
+                          localeProvider.changeLocale(current == 'fr' ? const Locale('ar') : const Locale('fr'));
                         },
-                        icon: const Icon(Icons.language,
-                            color: AppColors.secondary),
+                        icon: const Icon(Icons.language, color: AppColors.secondary),
                       ),
                     ],
                   ),

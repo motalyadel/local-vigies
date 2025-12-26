@@ -995,7 +995,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: l10n.quantityKg,
-                    suffixText: ' kg',
+                    suffixText: l10n.kilogram,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
@@ -1105,6 +1105,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
           ),
         ),
         drawer: Drawer(
+          backgroundColor: Colors.white,
           child: Consumer<LocaleProvider>(
             builder: (context, localeProvider, child) {
               final l10n = AppLocalizations.of(context)!;
@@ -1177,6 +1178,7 @@ class _ConsumerHomePageState extends State<ConsumerHomePage> {
                       Navigator.pop(context);
                     },
                   ),
+                  // const SizedBox(height: 30,),
 
                   // === Connexion / Inscription ===
                   ListTile(
@@ -1399,9 +1401,12 @@ class ConsumerChatScreen extends StatefulWidget {
 }
 
 class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
-  List<types.Message> _messages = [];
+  final List<types.Message> _messages = [];
+
   late final types.User _consumer;
   late final types.User _vendor;
+
+  late final RealtimeChannel _channel;
 
   @override
   void initState() {
@@ -1410,233 +1415,196 @@ class _ConsumerChatScreenState extends State<ConsumerChatScreen> {
     _consumer = types.User(id: widget.consumerId);
     _vendor = types.User(
       id: widget.product.vendorId,
-      firstName: widget.product.vendorShopName ?? "Vendeur",
+      firstName: widget.product.vendorShopName ?? 'Vendeur',
     );
 
     _loadMessages();
-    _setupRealtimeListener();
+    _subscribeRealtime();
+  }
+
+  // ---------------------------
+  // LOAD HISTORY (WhatsApp order)
+  // ---------------------------
+  Future<void> _loadMessages() async {
+    final data = await Supabase.instance.client
+        .from('messages')
+        .select()
+        .eq('consumer_id', widget.consumerId)
+        .eq('vendor_id', widget.product.vendorId)
+        .order('created_at', ascending: true);
+
+    final messages = data.map<types.TextMessage>(_mapRowToMessage).toList();
+
+    if (mounted) {
+      setState(() {
+        _messages
+          ..clear()
+          ..addAll(messages.reversed);
+      });
+    }
+
     _markVendorMessagesAsRead();
   }
 
-  Future<void> _loadMessages() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('messages')
-          .select()
-          .eq('consumer_id', widget.consumerId)
-          .eq('vendor_id', widget.product.vendorId)
-          .order('created_at', ascending: true);
-
-      final List<types.Message> loaded = response.map<types.TextMessage>((msg) {
-        final isFromVendor = msg['sender_type'] == 'vendor';
-        final bool isRead = msg['read'] == true;
-
-        return types.TextMessage(
-          author: isFromVendor ? _vendor : _consumer,
-          createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
-          id: msg['id'].toString(),
-          text: msg['text'] as String,
-          status: isFromVendor
-              ? (isRead ? types.Status.seen : types.Status.delivered)
-              : types.Status.sent,
-        );
-      }).toList();
-
-      if (mounted) {
-        setState(() {
-          _messages = loaded.reversed.toList();
-        });
-      }
-    } catch (e) {
-      debugPrint("Erreur chargement messages: $e");
-    }
-  }
-
-  void _setupRealtimeListener() {
-    Supabase.instance.client
+  // ---------------------------
+  // REALTIME
+  // ---------------------------
+  void _subscribeRealtime() {
+    _channel = Supabase.instance.client
         .channel(
-            'consumer_chat_${widget.consumerId}_${widget.product.vendorId}')
+          'consumer_chat_${widget.consumerId}_${widget.product.vendorId}',
+        )
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'messages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'consumer_id',
-            value: widget.consumerId,
-          ),
           callback: (payload) {
-            final newMsg = payload.newRecord;
+            final msg = payload.newRecord;
 
-            // Vérifie que le message concerne bien ce vendor
-            if (newMsg['vendor_id'] != widget.product.vendorId) return;
+            if (!_isForThisChat(msg)) return;
 
-            final isFromVendor = newMsg['sender_type'] == 'vendor';
-            final bool isRead = newMsg['read'] == true;
-
-            final newTextMessage = types.TextMessage(
-              author: isFromVendor ? _vendor : _consumer,
-              createdAt:
-                  DateTime.parse(newMsg['created_at']).millisecondsSinceEpoch,
-              id: newMsg['id'].toString(),
-              text: newMsg['text'] as String,
-              status: isFromVendor
-                  ? (isRead ? types.Status.seen : types.Status.delivered)
-                  : types.Status.sent,
-            );
+            final newMessage = _mapRowToMessage(msg);
 
             if (mounted) {
               setState(() {
-                _messages = [newTextMessage, ..._messages];
+                _messages.insert(0, newMessage);
               });
             }
 
-            // Si c'est un message du vendor → on le marque comme lu
-            if (isFromVendor) {
+            if (msg['sender_type'] == 'vendor') {
               _markVendorMessagesAsRead();
+            }
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) {
+            final msg = payload.newRecord;
+
+            if (!_isForThisChat(msg)) return;
+
+            final index = _messages.indexWhere(
+              (m) => m.id == msg['id'].toString(),
+            );
+
+            if (index != -1 && mounted) {
+              setState(() {
+                _messages[index] =
+                    (_messages[index] as types.TextMessage).copyWith(
+                  status: types.Status.seen,
+                );
+              });
             }
           },
         )
         .subscribe();
   }
 
-  Future<void> _markVendorMessagesAsRead() async {
-    try {
-      await Supabase.instance.client
-          .from('messages')
-          .update({'read': true})
-          .eq('consumer_id', widget.consumerId)
-          .eq('vendor_id', widget.product.vendorId)
-          .eq('sender_type', 'vendor')
-          .eq('read', false);
-
-      // Mise à jour visuelle : passer les messages du vendor à "seen"
-      if (mounted) {
-        setState(() {
-          _messages = _messages.map((m) {
-            if (m is types.TextMessage &&
-                m.author.id == widget.product.vendorId) {
-              return m.copyWith(status: types.Status.seen);
-            }
-            return m;
-          }).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint("Erreur marquage messages lus: $e");
-    }
+  bool _isForThisChat(Map<String, dynamic> msg) {
+    return msg['consumer_id'] == widget.consumerId &&
+        msg['vendor_id'] == widget.product.vendorId;
   }
 
-  void _handleSendPressed(types.PartialText message) async {
-    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
-    final tempMessage = types.TextMessage(
-      author: _consumer,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: tempId,
-      text: message.text,
-      status: types.Status.sending,
-    );
-
-    setState(() {
-      _messages = [tempMessage, ..._messages];
+  // ---------------------------
+  // SEND MESSAGE (Realtime handles UI)
+  // ---------------------------
+  Future<void> _handleSendPressed(types.PartialText message) async {
+    await Supabase.instance.client.from('messages').insert({
+      'text': message.text,
+      'sender_type': 'consumer',
+      'consumer_id': widget.consumerId,
+      'vendor_id': widget.product.vendorId,
+      'product_id': widget.product.id,
+      'read': false,
     });
+  }
 
-    try {
-      final response = await Supabase.instance.client
-          .from('messages')
-          .insert({
-            'text': message.text,
-            'sender_type': 'consumer',
-            'consumer_id': widget.consumerId,
-            'vendor_id': widget.product.vendorId,
-            'product_id': widget.product.id,
-            'read': false,
-          })
-          .select()
-          .single();
+  // ---------------------------
+  // MARK VENDOR MESSAGES AS READ
+  // ---------------------------
+  Future<void> _markVendorMessagesAsRead() async {
+    await Supabase.instance.client
+        .from('messages')
+        .update({'read': true})
+        .eq('consumer_id', widget.consumerId)
+        .eq('vendor_id', widget.product.vendorId)
+        .eq('sender_type', 'vendor')
+        .eq('read', false);
+  }
 
-      setState(() {
-        final index = _messages.indexWhere((m) => m.id == tempId);
-        if (index != -1) {
-          _messages[index] = tempMessage.copyWith(
-            id: response['id'].toString(),
-            status: types.Status.sent,
-          );
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _messages.removeWhere((m) => m.id == tempId);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.messageSendFailed),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  // ---------------------------
+  // MAP DB → CHAT MESSAGE
+  // ---------------------------
+  types.TextMessage _mapRowToMessage(Map<String, dynamic> msg) {
+    final isVendor = msg['sender_type'] == 'vendor';
+    final isRead = msg['read'] == true;
+
+    return types.TextMessage(
+      id: msg['id'].toString(),
+      text: msg['text'],
+      author: isVendor ? _vendor : _consumer,
+      createdAt: DateTime.parse(msg['created_at']).millisecondsSinceEpoch,
+      status: isVendor
+          ? (isRead ? types.Status.seen : types.Status.delivered)
+          : types.Status.sent,
+    );
   }
 
   @override
   void dispose() {
-    Supabase.instance.client.removeChannel(
-      Supabase.instance.client.channel(
-          'consumer_chat_${widget.consumerId}_${widget.product.vendorId}'),
-    );
+    Supabase.instance.client.removeChannel(_channel);
     super.dispose();
   }
 
+  // ---------------------------
+  // UI
+  // ---------------------------
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.product.vendorShopName ?? l10n.unknownVendor),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-      ),
-      body: Chat(
-        messages: _messages,
-        onSendPressed: _handleSendPressed,
-        user: _consumer,
-        theme: DefaultChatTheme(
-          primaryColor: Colors.teal,
-          inputBackgroundColor: Colors.white,
-          inputTextColor: Colors.black87,
-          sentMessageBodyTextStyle: const TextStyle(color: Colors.white),
-          receivedMessageBodyTextStyle: const TextStyle(color: Colors.black87),
-          backgroundColor: const Color(0xFFF1F3F5),
-          inputMargin: const EdgeInsets.all(12),
-          inputBorderRadius: BorderRadius.circular(30),
-          inputElevation: 8,
-          inputContainerDecoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.product.vendorShopName ?? l10n.unknownVendor),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
         ),
-        showUserAvatars: true,
-        showUserNames: true,
-        emptyState: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.chat_bubble_outline,
-                  size: 80, color: Colors.grey),
-              const SizedBox(height: 16),
-              Text(l10n.noMessagesYet),
-              Text(l10n.startConversation,
-                  style: TextStyle(color: Colors.grey[600])),
-            ],
+        body: Chat(
+          messages: _messages,
+          onSendPressed: _handleSendPressed,
+          user: _consumer,
+          showUserAvatars: true,
+          showUserNames: true,
+          // scrollToBottom: true,
+          theme: DefaultChatTheme(
+            primaryColor: Colors.teal,
+            inputBackgroundColor: Colors.white,
+            inputTextColor: Colors.black87,
+            sentMessageBodyTextStyle: const TextStyle(color: Colors.white),
+            receivedMessageBodyTextStyle:
+                const TextStyle(color: Colors.black87),
+            backgroundColor: const Color(0xFFF1F3F5),
+            inputMargin: const EdgeInsets.all(12),
+            inputBorderRadius: BorderRadius.circular(30),
+            inputElevation: 8,
+          ),
+          emptyState: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.chat_bubble_outline,
+                    size: 80, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(l10n.noMessagesYet),
+                Text(
+                  l10n.startConversation,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
           ),
         ),
       ),

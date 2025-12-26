@@ -193,6 +193,18 @@ abstract class AppLocalizations {
   /// **'Enter a valid email'**
   String get invalidEmail;
 
+  /// No description provided for @invalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect email or password'**
+  String get invalidCredentials;
+
+  /// No description provided for @loginError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred during login'**
+  String get loginError;
+
   /// No description provided for @invalidNom.
   ///
   /// In en, this message translates to:
@@ -316,7 +328,7 @@ abstract class AppLocalizations {
   /// No description provided for @quantityKg.
   ///
   /// In en, this message translates to:
-  /// **'Kg'**
+  /// **'Quantity (kg)'**
   String get quantityKg;
 
   /// No description provided for @deliveryAddress.
@@ -636,6 +648,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total:'**
   String get totalLabel;
+
+  /// No description provided for @kilogram.
+  ///
+  /// In en, this message translates to:
+  /// **'K'**
+  String get kilogram;
 
   /// No description provided for @quantityRequested.
   ///

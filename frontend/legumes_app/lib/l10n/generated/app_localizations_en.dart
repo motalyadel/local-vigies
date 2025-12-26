@@ -55,6 +55,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidEmail => 'Enter a valid email';
 
   @override
+  String get invalidCredentials => 'Incorrect email or password';
+
+  @override
+  String get loginError => 'An error occurred during login';
+
+  @override
   String get invalidNom => 'Name too short (min 3 characters)';
 
   @override
@@ -117,7 +123,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pricePerKg => 'MRU/Kg';
 
   @override
-  String get quantityKg => 'Kg';
+  String get quantityKg => 'Quantity (kg)';
 
   @override
   String get deliveryAddress => 'Delivery address';
@@ -289,6 +295,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get totalLabel => 'Total:';
+
+  @override
+  String get kilogram => 'K';
 
   @override
   String get quantityRequested => 'Quantity requested: @qty Kg';

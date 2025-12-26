@@ -70,24 +70,25 @@ class _RegisterPageState extends State<RegisterPage> {
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-          title: Text(AppLocalizations.of(context)!.register,
-              style: const TextStyle(color: AppColors.textPrimary)),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.language, color: AppColors.secondary),
-              onPressed: () {
-                final current = localeProvider.locale.languageCode;
-                final newLocale =
-                    current == 'fr' ? const Locale('ar') : const Locale('fr');
-                localeProvider.changeLocale(newLocale);
-              },
-              tooltip: 'Changer la langue',
-            ),
-          ],
-        ),
+        // appBar: AppBar(
+        //   backgroundColor: AppColors.surface,
+        //   elevation: 0,
+        //   automaticallyImplyLeading: false,
+        //   title: Text(AppLocalizations.of(context)!.register,
+        //       style: const TextStyle(color: AppColors.textPrimary)),
+        //   actions: [
+        //     IconButton(
+        //       icon: const Icon(Icons.language, color: AppColors.secondary),
+        //       onPressed: () {
+        //         final current = localeProvider.locale.languageCode;
+        //         final newLocale =
+        //             current == 'fr' ? const Locale('ar') : const Locale('fr');
+        //         localeProvider.changeLocale(newLocale);
+        //       },
+        //       tooltip: 'Changer la langue',
+        //     ),
+        //   ],
+        // ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isMobile = constraints.maxWidth < 600;

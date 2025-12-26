@@ -177,7 +177,7 @@ class _VendorChatListScreenState extends State<VendorChatListScreen>
                                 consumerId: consumerId,
                                 consumerName: clientName,
                                 consumerPhone: clientPhone,
-                                onMessagesRead: _refreshUnreadCount,
+                                // onMessagesRead: _refreshUnreadCount,
                               ),
                             ),
                           );

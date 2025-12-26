@@ -55,6 +55,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get invalidEmail => 'أدخل بريدًا إلكترونيًا صالحًا';
 
   @override
+  String get invalidCredentials => 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+
+  @override
+  String get loginError => 'حدث خطأ أثناء الاتصال';
+
+  @override
   String get invalidNom => 'الاسم قصير جداً (3 أحرف على الأقل)';
 
   @override
@@ -117,7 +123,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pricePerKg => 'أوقية/كجم';
 
   @override
-  String get quantityKg => 'كجم';
+  String get quantityKg => 'الكمية (kg)';
 
   @override
   String get deliveryAddress => 'عنوان التوصيل';
@@ -289,6 +295,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get totalLabel => 'المجموع :';
+
+  @override
+  String get kilogram => 'كجم';
 
   @override
   String get quantityRequested => 'الكمية المطلوبة: @qty كجم';
