@@ -16,9 +16,20 @@ import 'package:intl/intl.dart';
 
 import 'package:legumes_app/core/utils/navigator.dart';
 import 'package:legumes_app/presentation/providers/auth_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VendorHomePage extends StatelessWidget {
   const VendorHomePage({super.key});
+  Stream<int> unreadMessagesStream(String vendorId) {
+    return Supabase.instance.client
+        .from('messages')
+        .stream(primaryKey: ['id']).map((rows) => rows
+            .where((row) =>
+                row['vendor_id'] == vendorId &&
+                row['sender_type'] == 'consumer' &&
+                row['read'] == false)
+            .length);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,12 +208,32 @@ class VendorHomePage extends StatelessWidget {
                                         const VendorChatListScreen()),
                               ),
                             ),
-                            Consumer<NotificationController>(
-                              builder: (context, noti, child) {
-                                if (noti.unreadMessages == 0)
-                                  return const SizedBox();
-                                return _buildBadge(noti.unreadMessages);
-                              },
+                            Stack(
+                              children: [
+                                _buildQuickActionTile(
+                                  icon: Icons.chat_bubble,
+                                  title: l10n.myConversations,
+                                  color: Colors.blue,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const VendorChatListScreen(),
+                                    ),
+                                  ),
+                                ),
+                                StreamBuilder<int>(
+                                  stream: unreadMessagesStream(
+                                    Supabase
+                                        .instance.client.auth.currentUser!.id,
+                                  ),
+                                  builder: (context, snapshot) {
+                                    final count = snapshot.data ?? 0;
+                                    if (count == 0) return const SizedBox();
+                                    return _buildBadge(count);
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
